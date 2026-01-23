@@ -205,6 +205,27 @@
   color: var(--primary-500);
 }
 
+.card-header.clickable-header {
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition);
+}
+
+.card-header.clickable-header:hover {
+  background: var(--primary-50);
+}
+
+.card-header.clickable-header .header-arrow {
+  color: var(--neutral-400);
+  transition: var(--transition);
+}
+
+.card-header.clickable-header:hover .header-arrow {
+  color: var(--primary-500);
+  transform: translateX(2px);
+}
+
 .dashboard-card .card-body {
   padding: 1rem 1.5rem;
 }
@@ -233,16 +254,6 @@
   border-bottom: none;
 }
 
-.task-item.clickable {
-  cursor: pointer;
-  text-decoration: none;
-  color: inherit;
-  transition: var(--transition);
-}
-
-.task-item.clickable:hover {
-  background: var(--primary-50);
-}
 
 .task-info {
   display: flex;

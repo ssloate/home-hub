@@ -65,22 +65,14 @@ export default function Maintenance() {
   const [areaFilter, setAreaFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
 
-  // Read filter and task from URL query params
+  // Read filter from URL query params
   useEffect(() => {
     const filter = searchParams.get('filter');
     if (filter) {
       setStatusFilter(filter);
       setTypeFilter('all');
     }
-
-    const taskId = searchParams.get('task');
-    if (taskId) {
-      const task = maintenanceTasks.find(t => t.id === taskId);
-      if (task) {
-        setShowEditModal(task);
-      }
-    }
-  }, [searchParams, maintenanceTasks]);
+  }, [searchParams]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(null);
@@ -121,17 +113,19 @@ export default function Maintenance() {
         }
 
         // Status filter
-        if (task.frequency === 'one-time') {
-          // One-time tasks don't have due date status in the same way
-          if (statusFilter === 'overdue' || statusFilter === 'due-soon') return false;
-          if (statusFilter === 'upcoming') return true;
-        } else {
-          const dueDate = startOfDay(new Date(task.dueDate));
-          const daysUntilDue = differenceInDays(dueDate, today);
+        if (statusFilter !== 'all') {
+          // Check if task has a due date
+          if (!task.dueDate) {
+            // Tasks without due dates only show in 'all' and 'upcoming'
+            if (statusFilter === 'overdue' || statusFilter === 'due-soon') return false;
+          } else {
+            const dueDate = startOfDay(new Date(task.dueDate));
+            const daysUntilDue = differenceInDays(dueDate, today);
 
-          if (statusFilter === 'overdue' && daysUntilDue >= 0) return false;
-          if (statusFilter === 'due-soon' && (daysUntilDue < 0 || daysUntilDue > 7)) return false;
-          if (statusFilter === 'upcoming' && daysUntilDue <= 7) return false;
+            if (statusFilter === 'overdue' && daysUntilDue >= 0) return false;
+            if (statusFilter === 'due-soon' && (daysUntilDue < 0 || daysUntilDue > 30)) return false;
+            if (statusFilter === 'upcoming' && daysUntilDue <= 30) return false;
+          }
         }
 
         // Area filter - match based on location
@@ -162,14 +156,24 @@ export default function Maintenance() {
         return true;
       })
       .sort((a, b) => {
-        // Sort one-time tasks by priority, recurring by due date
-        if (a.frequency === 'one-time' && b.frequency === 'one-time') {
-          const priorityOrder = { high: 0, medium: 1, low: 2 };
-          return priorityOrder[a.priority] - priorityOrder[b.priority];
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+
+        // First, sort by priority (high to low)
+        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+        if (priorityDiff !== 0) return priorityDiff;
+
+        // Within same priority, sort by due date (ascending - soonest first)
+        // Tasks without due dates go to the bottom of their priority group
+        const aHasDate = !!a.dueDate;
+        const bHasDate = !!b.dueDate;
+
+        if (aHasDate && bHasDate) {
+          return new Date(a.dueDate) - new Date(b.dueDate);
         }
-        if (a.frequency === 'one-time') return 1;
-        if (b.frequency === 'one-time') return -1;
-        return new Date(a.dueDate) - new Date(b.dueDate);
+        if (aHasDate && !bHasDate) return -1; // a has date, goes first
+        if (!aHasDate && bHasDate) return 1;  // b has date, goes first
+
+        return 0; // both have no date, keep original order
       });
   }, [maintenanceTasks, searchQuery, categoryFilter, priorityFilter, statusFilter, typeFilter, areaFilter, dateFilter, today]);
 
@@ -199,17 +203,17 @@ export default function Maintenance() {
   // Stats
   const stats = useMemo(() => {
     const activeTasks = maintenanceTasks.filter(t => t.isActive);
-    const recurringTasks = activeTasks.filter(t => t.frequency !== 'one-time');
+    const tasksWithDueDate = activeTasks.filter(t => t.dueDate);
     const repairTasks = activeTasks.filter(t => t.taskType === 'repair');
     const maintenanceTasks2 = activeTasks.filter(t => t.taskType === 'maintenance');
     const upgradeTasks = activeTasks.filter(t => t.taskType === 'upgrade');
 
     return {
       total: activeTasks.length,
-      overdue: recurringTasks.filter(t => differenceInDays(startOfDay(new Date(t.dueDate)), today) < 0).length,
-      dueSoon: recurringTasks.filter(t => {
+      overdue: tasksWithDueDate.filter(t => differenceInDays(startOfDay(new Date(t.dueDate)), today) < 0).length,
+      dueSoon: tasksWithDueDate.filter(t => {
         const days = differenceInDays(startOfDay(new Date(t.dueDate)), today);
-        return days >= 0 && days <= 7;
+        return days >= 0 && days <= 30;
       }).length,
       repairs: repairTasks.length,
       maintenance: maintenanceTasks2.length,
@@ -515,7 +519,7 @@ function TaskModal({ mode, task, onClose, onSave }) {
   const [priority, setPriority] = useState(task?.priority || 'medium');
   const [frequency, setFrequency] = useState(task?.frequency || 'monthly');
   const [customDays, setCustomDays] = useState(task?.intervalDays?.toString() || '');
-  const [dueDate, setDueDate] = useState(task?.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+  const [dueDate, setDueDate] = useState(task?.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '');
   const [taskType, setTaskType] = useState(task?.taskType || 'maintenance');
   const [location, setLocation] = useState(task?.location || '');
   const [estimatedCost, setEstimatedCost] = useState(task?.estimatedCost?.toString() || '');

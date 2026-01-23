@@ -31,9 +31,13 @@ export default function Notifications() {
     return <Clock size={20} className="icon-primary" />;
   };
 
-  const sortedNotifications = [...notifications].sort(
-    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-  );
+  // Sort by priority (high to low), then by date (newest first)
+  const priorityOrder = { high: 0, medium: 1, low: 2, undefined: 3 };
+  const sortedNotifications = [...notifications].sort((a, b) => {
+    const priorityDiff = (priorityOrder[a.priority] ?? 3) - (priorityOrder[b.priority] ?? 3);
+    if (priorityDiff !== 0) return priorityDiff;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
 
   return (
     <div className="notifications-page">

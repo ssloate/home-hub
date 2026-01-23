@@ -40,11 +40,11 @@ export default function Dashboard() {
       (sum, task) => sum + task.completionHistory.length, 0
     );
 
-    // Due Soon (within 7 days) - matches Maintenance page
+    // Due Soon (within 30 days) - matches Maintenance page
     const dueSoonTasks = maintenanceTasks.filter(task => {
       if (!task.isActive || task.frequency === 'one-time') return false;
       const days = differenceInDays(startOfDay(new Date(task.dueDate)), today);
-      return days >= 0 && days <= 7;
+      return days >= 0 && days <= 30;
     });
 
     // This month's costs
@@ -66,11 +66,29 @@ export default function Dashboard() {
     };
   }, [maintenanceTasks, costs, getOverdueTasks, today]);
 
-  // Get next 5 upcoming tasks
+  // Get next 5 upcoming tasks - sorted by priority (high to low), then by due date (soonest first)
   const nextTasks = useMemo(() => {
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
     return maintenanceTasks
       .filter(task => task.isActive)
-      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+      .sort((a, b) => {
+        // First sort by priority (high to low)
+        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+        if (priorityDiff !== 0) return priorityDiff;
+
+        // Within same priority, sort by due date (ascending - soonest first)
+        // Tasks without due dates go to the bottom of their priority group
+        const aHasDate = !!a.dueDate;
+        const bHasDate = !!b.dueDate;
+
+        if (aHasDate && bHasDate) {
+          return new Date(a.dueDate) - new Date(b.dueDate);
+        }
+        if (aHasDate && !bHasDate) return -1;
+        if (!aHasDate && bHasDate) return 1;
+
+        return 0;
+      })
       .slice(0, 5);
   }, [maintenanceTasks]);
 
@@ -172,15 +190,13 @@ export default function Dashboard() {
       <div className="dashboard-grid">
         {/* Upcoming Tasks */}
         <div className="dashboard-card tasks-card">
-          <div className="card-header">
+          <Link to="/maintenance?filter=due-soon" className="card-header clickable-header">
             <div className="card-title">
               <Calendar size={20} />
               <h2>Upcoming Tasks</h2>
             </div>
-            <Link to="/maintenance" className="card-link">
-              View All <ArrowRight size={16} />
-            </Link>
-          </div>
+            <ArrowRight size={16} className="header-arrow" />
+          </Link>
           <div className="card-body">
             {nextTasks.length === 0 ? (
               <div className="empty-state">
@@ -192,7 +208,7 @@ export default function Dashboard() {
                 {nextTasks.map(task => {
                   const status = getTaskStatus(task.dueDate);
                   return (
-                    <Link key={task.id} to={`/maintenance?task=${task.id}`} className={`task-item clickable ${status}`}>
+                    <div key={task.id} className={`task-item ${status}`}>
                       <div className="task-info">
                         <span className="task-name">{task.name}</span>
                         <span className="task-category">{task.category}</span>
@@ -203,7 +219,7 @@ export default function Dashboard() {
                         </span>
                         <span className={`priority-dot priority-${task.priority}`} />
                       </div>
-                    </Link>
+                    </div>
                   );
                 })}
               </div>
@@ -213,15 +229,13 @@ export default function Dashboard() {
 
         {/* Recent Expenses */}
         <div className="dashboard-card costs-card">
-          <div className="card-header">
+          <Link to="/costs" className="card-header clickable-header">
             <div className="card-title">
               <TrendingUp size={20} />
               <h2>Recent Expenses</h2>
             </div>
-            <Link to="/costs" className="card-link">
-              View All <ArrowRight size={16} />
-            </Link>
-          </div>
+            <ArrowRight size={16} className="header-arrow" />
+          </Link>
           <div className="card-body">
             {recentCosts.length === 0 ? (
               <div className="empty-state">
