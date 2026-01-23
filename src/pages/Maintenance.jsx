@@ -114,17 +114,22 @@ export default function Maintenance() {
 
         // Status filter
         if (statusFilter !== 'all') {
-          // Check if task has a due date
-          if (!task.dueDate) {
-            // Tasks without due dates only show in 'all' and 'upcoming'
-            if (statusFilter === 'overdue' || statusFilter === 'due-soon') return false;
+          // Completed filter - show tasks with at least one completion
+          if (statusFilter === 'completed') {
+            if (!task.completionHistory || task.completionHistory.length === 0) return false;
           } else {
-            const dueDate = startOfDay(new Date(task.dueDate));
-            const daysUntilDue = differenceInDays(dueDate, today);
+            // Check if task has a due date
+            if (!task.dueDate) {
+              // Tasks without due dates only show in 'all' and 'upcoming'
+              if (statusFilter === 'overdue' || statusFilter === 'due-soon') return false;
+            } else {
+              const dueDate = startOfDay(new Date(task.dueDate));
+              const daysUntilDue = differenceInDays(dueDate, today);
 
-            if (statusFilter === 'overdue' && daysUntilDue >= 0) return false;
-            if (statusFilter === 'due-soon' && (daysUntilDue < 0 || daysUntilDue > 30)) return false;
-            if (statusFilter === 'upcoming' && daysUntilDue <= 30) return false;
+              if (statusFilter === 'overdue' && daysUntilDue >= 0) return false;
+              if (statusFilter === 'due-soon' && (daysUntilDue < 0 || daysUntilDue > 30)) return false;
+              if (statusFilter === 'upcoming' && daysUntilDue <= 30) return false;
+            }
           }
         }
 
@@ -208,6 +213,11 @@ export default function Maintenance() {
     const maintenanceTasks2 = activeTasks.filter(t => t.taskType === 'maintenance');
     const upgradeTasks = activeTasks.filter(t => t.taskType === 'upgrade');
 
+    // Count total completions across all tasks
+    const totalCompletions = maintenanceTasks.reduce(
+      (sum, task) => sum + (task.completionHistory?.length || 0), 0
+    );
+
     return {
       total: activeTasks.length,
       overdue: tasksWithDueDate.filter(t => differenceInDays(startOfDay(new Date(t.dueDate)), today) < 0).length,
@@ -215,6 +225,7 @@ export default function Maintenance() {
         const days = differenceInDays(startOfDay(new Date(t.dueDate)), today);
         return days >= 0 && days <= 30;
       }).length,
+      completed: totalCompletions,
       repairs: repairTasks.length,
       maintenance: maintenanceTasks2.length,
       upgrades: upgradeTasks.length
@@ -262,6 +273,14 @@ export default function Maintenance() {
           <Clock size={16} />
           <span className="stat-count">{stats.dueSoon}</span>
           <span className="stat-label">Due Soon</span>
+        </button>
+        <button
+          className={`stat-pill completed ${statusFilter === 'completed' ? 'active' : ''}`}
+          onClick={() => { setStatusFilter('completed'); setTypeFilter('all'); }}
+        >
+          <CheckCircle2 size={16} />
+          <span className="stat-count">{stats.completed}</span>
+          <span className="stat-label">Completed</span>
         </button>
         <button
           className={`stat-pill repair ${typeFilter === 'repair' ? 'active' : ''}`}

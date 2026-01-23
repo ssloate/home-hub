@@ -16,6 +16,7 @@ export function DataProvider({ children }) {
   const [maintenanceTasks, setMaintenanceTasks] = useState([]);
   const [costs, setCosts] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [initialized, setInitialized] = useState(false);
 
   // Load data when user changes
@@ -25,6 +26,7 @@ export function DataProvider({ children }) {
       setMaintenanceTasks([]);
       setCosts([]);
       setNotifications([]);
+      setContacts([]);
       setInitialized(false);
       return;
     }
@@ -80,6 +82,12 @@ export function DataProvider({ children }) {
         setNotifications(JSON.parse(storedNotifications));
       }
 
+      // Load contacts
+      const storedContacts = localStorage.getItem(getStorageKey(user.id, 'contacts'));
+      if (storedContacts) {
+        setContacts(JSON.parse(storedContacts));
+      }
+
       setInitialized(true);
     };
 
@@ -106,6 +114,11 @@ export function DataProvider({ children }) {
     if (!user || !initialized) return;
     localStorage.setItem(getStorageKey(user.id, 'notifications'), JSON.stringify(notifications));
   }, [notifications, user, initialized]);
+
+  useEffect(() => {
+    if (!user || !initialized) return;
+    localStorage.setItem(getStorageKey(user.id, 'contacts'), JSON.stringify(contacts));
+  }, [contacts, user, initialized]);
 
   // Room functions
   const updateRoom = useCallback((roomId, updates) => {
@@ -480,6 +493,43 @@ export function DataProvider({ children }) {
     return notifications.filter(n => !n.read).length;
   }, [notifications]);
 
+  // Contact functions
+  const addContact = useCallback((contact) => {
+    const newContact = {
+      id: uuidv4(),
+      ...contact,
+      createdAt: new Date().toISOString()
+    };
+
+    setContacts(prev => [...prev, newContact]);
+    return newContact;
+  }, []);
+
+  const updateContact = useCallback((contactId, updates) => {
+    setContacts(prev => prev.map(contact =>
+      contact.id === contactId ? { ...contact, ...updates } : contact
+    ));
+  }, []);
+
+  const deleteContact = useCallback((contactId) => {
+    setContacts(prev => prev.filter(contact => contact.id !== contactId));
+  }, []);
+
+  // Reset maintenance tasks to defaults
+  const resetMaintenanceTasks = useCallback(() => {
+    const today = new Date();
+    const initialTasks = defaultMaintenanceTasks.map(task => ({
+      ...task,
+      id: uuidv4(),
+      dueDate: task.frequency === 'one-time' ? null : addDays(today, Math.floor(Math.random() * task.intervalDays)).toISOString(),
+      completionHistory: [],
+      isActive: true,
+      createdAt: today.toISOString()
+    }));
+    setMaintenanceTasks(initialTasks);
+    return initialTasks;
+  }, []);
+
   // Check for due tasks and create notifications
   useEffect(() => {
     if (!user || !initialized) return;
@@ -542,6 +592,7 @@ export function DataProvider({ children }) {
       maintenanceTasks,
       costs,
       notifications,
+      contacts,
       initialized,
 
       // Room functions
@@ -568,6 +619,7 @@ export function DataProvider({ children }) {
       getUpcomingTasks,
       getOverdueTasks,
       getTasksDueSoon,
+      resetMaintenanceTasks,
 
       // Cost functions
       addCost,
@@ -580,7 +632,12 @@ export function DataProvider({ children }) {
       markNotificationRead,
       markAllNotificationsRead,
       deleteNotification,
-      getUnreadCount
+      getUnreadCount,
+
+      // Contact functions
+      addContact,
+      updateContact,
+      deleteContact
     }}>
       {children}
     </DataContext.Provider>

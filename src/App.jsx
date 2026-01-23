@@ -10,6 +10,7 @@ import Maintenance from './pages/Maintenance';
 import Costs from './pages/Costs';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
+import Contacts from './pages/Contacts';
 import './styles/globals.css';
 
 // Protected Route Component
@@ -131,6 +132,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <Settings />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contacts"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Contacts />
             </Layout>
           </ProtectedRoute>
         }

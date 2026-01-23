@@ -13,7 +13,8 @@ import {
   Menu,
   X,
   ChevronDown,
-  User
+  User,
+  Users
 } from 'lucide-react';
 import './Layout.css';
 
@@ -22,6 +23,7 @@ const navItems = [
   { path: '/rooms', icon: LayoutGrid, label: 'Rooms' },
   { path: '/maintenance', icon: Wrench, label: 'Maintenance' },
   { path: '/costs', icon: DollarSign, label: 'Costs' },
+  { path: '/contacts', icon: Users, label: 'Contacts' },
 ];
 
 export default function Layout({ children }) {

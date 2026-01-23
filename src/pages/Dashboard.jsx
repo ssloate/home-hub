@@ -41,8 +41,9 @@ export default function Dashboard() {
     );
 
     // Due Soon (within 30 days) - matches Maintenance page
+    // Include all tasks with due dates (including one-time tasks with scheduled dates)
     const dueSoonTasks = maintenanceTasks.filter(task => {
-      if (!task.isActive || task.frequency === 'one-time') return false;
+      if (!task.isActive || !task.dueDate) return false;
       const days = differenceInDays(startOfDay(new Date(task.dueDate)), today);
       return days >= 0 && days <= 30;
     });
@@ -156,7 +157,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to="/maintenance?filter=due-soon" className="stat-card clickable">
-          <div className="stat-icon upcoming">
+          <div className="stat-icon due-soon">
             <Clock size={24} />
           </div>
           <div className="stat-content">
@@ -165,7 +166,7 @@ export default function Dashboard() {
           </div>
         </Link>
 
-        <Link to="/maintenance" className="stat-card clickable">
+        <Link to="/maintenance?filter=completed" className="stat-card clickable">
           <div className="stat-icon completed">
             <CheckCircle2 size={24} />
           </div>
@@ -176,7 +177,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to="/costs" className="stat-card clickable">
-          <div className="stat-icon costs">
+          <div className="stat-icon spent">
             <DollarSign size={24} />
           </div>
           <div className="stat-content">

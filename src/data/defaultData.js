@@ -8,7 +8,7 @@ export const propertyInfo = {
   state: "MD",
   zip: "20912",
   yearBuilt: 1936,
-  squareFeet: 2099,
+  squareFeet: 2544,
   belowGradeSqFt: 897,
   lotSize: 7625,
   bedrooms: 3,
