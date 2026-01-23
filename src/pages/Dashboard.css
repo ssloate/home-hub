@@ -233,6 +233,17 @@
   border-bottom: none;
 }
 
+.task-item.clickable {
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition);
+}
+
+.task-item.clickable:hover {
+  background: var(--primary-50);
+}
+
 .task-info {
   display: flex;
   flex-direction: column;

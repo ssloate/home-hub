@@ -36,10 +36,16 @@ export default function Dashboard() {
   // Calculate statistics
   const stats = useMemo(() => {
     const overdueTasks = getOverdueTasks();
-    const upcomingTasks = getUpcomingTasks();
     const totalTasksCompleted = maintenanceTasks.reduce(
       (sum, task) => sum + task.completionHistory.length, 0
     );
+
+    // Due Soon (within 7 days) - matches Maintenance page
+    const dueSoonTasks = maintenanceTasks.filter(task => {
+      if (!task.isActive || task.frequency === 'one-time') return false;
+      const days = differenceInDays(startOfDay(new Date(task.dueDate)), today);
+      return days >= 0 && days <= 7;
+    });
 
     // This month's costs
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -53,12 +59,12 @@ export default function Dashboard() {
 
     return {
       overdueTasks: overdueTasks.length,
-      upcomingTasks: upcomingTasks.length,
+      dueSoonTasks: dueSoonTasks.length,
       totalTasksCompleted,
       thisMonthTotal,
       thisYearTotal
     };
-  }, [maintenanceTasks, costs, getOverdueTasks, getUpcomingTasks, today]);
+  }, [maintenanceTasks, costs, getOverdueTasks, today]);
 
   // Get next 5 upcoming tasks
   const nextTasks = useMemo(() => {
@@ -136,8 +142,8 @@ export default function Dashboard() {
             <Clock size={24} />
           </div>
           <div className="stat-content">
-            <span className="stat-value">{stats.upcomingTasks}</span>
-            <span className="stat-label">Tasks This Month</span>
+            <span className="stat-value">{stats.dueSoonTasks}</span>
+            <span className="stat-label">Due Soon</span>
           </div>
         </Link>
 
@@ -186,7 +192,7 @@ export default function Dashboard() {
                 {nextTasks.map(task => {
                   const status = getTaskStatus(task.dueDate);
                   return (
-                    <div key={task.id} className={`task-item ${status}`}>
+                    <Link key={task.id} to={`/maintenance?task=${task.id}`} className={`task-item clickable ${status}`}>
                       <div className="task-info">
                         <span className="task-name">{task.name}</span>
                         <span className="task-category">{task.category}</span>
@@ -197,7 +203,7 @@ export default function Dashboard() {
                         </span>
                         <span className={`priority-dot priority-${task.priority}`} />
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>

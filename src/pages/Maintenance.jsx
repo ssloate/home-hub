@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
-import { maintenanceCategories, priorityLevels, frequencyOptions, taskTypes } from '../data/defaultData';
+import { maintenanceCategories, priorityLevels, frequencyOptions, taskTypes, areaCategories } from '../data/defaultData';
 import { format, differenceInDays, startOfDay, addDays } from 'date-fns';
 import {
   Plus,
@@ -27,7 +27,9 @@ import {
   Shield,
   Wind,
   TreeDeciduous,
-  Building2
+  Building2,
+  TrendingUp,
+  CalendarDays
 } from 'lucide-react';
 import './Maintenance.css';
 
@@ -60,15 +62,25 @@ export default function Maintenance() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [areaFilter, setAreaFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
 
-  // Read filter from URL query params
+  // Read filter and task from URL query params
   useEffect(() => {
     const filter = searchParams.get('filter');
     if (filter) {
       setStatusFilter(filter);
       setTypeFilter('all');
     }
-  }, [searchParams]);
+
+    const taskId = searchParams.get('task');
+    if (taskId) {
+      const task = maintenanceTasks.find(t => t.id === taskId);
+      if (task) {
+        setShowEditModal(task);
+      }
+    }
+  }, [searchParams, maintenanceTasks]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(null);
@@ -122,6 +134,31 @@ export default function Maintenance() {
           if (statusFilter === 'upcoming' && daysUntilDue <= 7) return false;
         }
 
+        // Area filter - match based on location
+        if (areaFilter !== 'all') {
+          const location = (task.location || '').toLowerCase();
+          const areaMatches = {
+            'outdoor': location.includes('outside') || location.includes('deck') || location.includes('yard') || location.includes('roof') || location.includes('gutter'),
+            'basement': location.includes('basement'),
+            'main-floor': location.includes('main floor'),
+            'upper-floor': location.includes('upper floor'),
+            'attic': location.includes('attic'),
+            'structure': task.category === 'Structure' || location.includes('foundation')
+          };
+          if (!areaMatches[areaFilter]) return false;
+        }
+
+        // Date filter
+        if (dateFilter !== 'all' && task.frequency !== 'one-time') {
+          const dueDate = startOfDay(new Date(task.dueDate));
+          const daysUntilDue = differenceInDays(dueDate, today);
+
+          if (dateFilter === 'today' && daysUntilDue !== 0) return false;
+          if (dateFilter === 'this-week' && (daysUntilDue < 0 || daysUntilDue > 7)) return false;
+          if (dateFilter === 'this-month' && (daysUntilDue < 0 || daysUntilDue > 30)) return false;
+          if (dateFilter === 'this-quarter' && (daysUntilDue < 0 || daysUntilDue > 90)) return false;
+        }
+
         return true;
       })
       .sort((a, b) => {
@@ -134,11 +171,20 @@ export default function Maintenance() {
         if (b.frequency === 'one-time') return -1;
         return new Date(a.dueDate) - new Date(b.dueDate);
       });
-  }, [maintenanceTasks, searchQuery, categoryFilter, priorityFilter, statusFilter, typeFilter, today]);
+  }, [maintenanceTasks, searchQuery, categoryFilter, priorityFilter, statusFilter, typeFilter, areaFilter, dateFilter, today]);
 
   const getTaskStatus = (task) => {
     if (task.frequency === 'one-time') {
-      return { status: 'one-time', label: 'One-Time Task', color: 'neutral' };
+      // One-time tasks can have an optional scheduled date
+      if (task.dueDate) {
+        const due = startOfDay(new Date(task.dueDate));
+        const daysUntilDue = differenceInDays(due, today);
+        if (daysUntilDue < 0) return { status: 'overdue', label: `${Math.abs(daysUntilDue)} days ago`, color: 'error' };
+        if (daysUntilDue === 0) return { status: 'today', label: 'Scheduled Today', color: 'warning' };
+        if (daysUntilDue <= 7) return { status: 'soon', label: `Scheduled in ${daysUntilDue} days`, color: 'primary' };
+        return { status: 'upcoming', label: `Scheduled ${format(due, 'MMM d')}`, color: 'neutral' };
+      }
+      return { status: 'one-time', label: 'Not Scheduled', color: 'neutral' };
     }
 
     const due = startOfDay(new Date(task.dueDate));
@@ -156,6 +202,7 @@ export default function Maintenance() {
     const recurringTasks = activeTasks.filter(t => t.frequency !== 'one-time');
     const repairTasks = activeTasks.filter(t => t.taskType === 'repair');
     const maintenanceTasks2 = activeTasks.filter(t => t.taskType === 'maintenance');
+    const upgradeTasks = activeTasks.filter(t => t.taskType === 'upgrade');
 
     return {
       total: activeTasks.length,
@@ -165,7 +212,8 @@ export default function Maintenance() {
         return days >= 0 && days <= 7;
       }).length,
       repairs: repairTasks.length,
-      maintenance: maintenanceTasks2.length
+      maintenance: maintenanceTasks2.length,
+      upgrades: upgradeTasks.length
     };
   }, [maintenanceTasks, today]);
 
@@ -227,6 +275,14 @@ export default function Maintenance() {
           <span className="stat-count">{stats.maintenance}</span>
           <span className="stat-label">Maintenance</span>
         </button>
+        <button
+          className={`stat-pill upgrade ${typeFilter === 'upgrade' ? 'active' : ''}`}
+          onClick={() => { setTypeFilter('upgrade'); setStatusFilter('all'); }}
+        >
+          <TrendingUp size={16} />
+          <span className="stat-count">{stats.upgrades}</span>
+          <span className="stat-label">Upgrades</span>
+        </button>
       </div>
 
       {/* Filters */}
@@ -266,6 +322,34 @@ export default function Maintenance() {
             ))}
           </select>
         </div>
+
+        <div className="filter-group">
+          <MapPin size={16} />
+          <select
+            value={areaFilter}
+            onChange={(e) => setAreaFilter(e.target.value)}
+            className="filter-select"
+          >
+            {areaCategories.map(area => (
+              <option key={area.value} value={area.value}>{area.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <CalendarDays size={16} />
+          <select
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Dates</option>
+            <option value="today">Due Today</option>
+            <option value="this-week">This Week</option>
+            <option value="this-month">This Month</option>
+            <option value="this-quarter">This Quarter</option>
+          </select>
+        </div>
       </div>
 
       {/* Task List */}
@@ -286,10 +370,15 @@ export default function Maintenance() {
               const taskStatus = getTaskStatus(task);
 
               return (
-                <div key={task.id} className={`task-card ${taskStatus.status}`}>
+                <div
+                  key={task.id}
+                  className={`task-card ${taskStatus.status} clickable`}
+                  onClick={() => setShowEditModal(task)}
+                >
                   <div className="task-icon-wrapper">
                     <div className={`task-type-icon ${task.taskType}`}>
-                      {task.taskType === 'repair' ? <Hammer size={20} /> : <Wrench size={20} />}
+                      {task.taskType === 'repair' ? <Hammer size={20} /> :
+                       task.taskType === 'upgrade' ? <TrendingUp size={20} /> : <Wrench size={20} />}
                     </div>
                   </div>
 
@@ -298,7 +387,7 @@ export default function Maintenance() {
                       <h3 className="task-name">{task.name}</h3>
                       <div className="task-badges">
                         <span className={`type-badge ${task.taskType}`}>
-                          {task.taskType === 'repair' ? 'Repair' : 'Maintenance'}
+                          {task.taskType === 'repair' ? 'Repair' : task.taskType === 'upgrade' ? 'Upgrade' : 'Maintenance'}
                         </span>
                         <span className={`priority-badge priority-${task.priority}`}>
                           {task.priority}
@@ -315,12 +404,10 @@ export default function Maintenance() {
                     )}
 
                     <div className="task-meta">
-                      {task.frequency !== 'one-time' && (
-                        <span className={`due-status ${taskStatus.color}`}>
-                          <Calendar size={14} />
-                          {taskStatus.label}
-                        </span>
-                      )}
+                      <span className={`due-status ${taskStatus.color}`}>
+                        <Calendar size={14} />
+                        {taskStatus.label}
+                      </span>
                       <span className="frequency">
                         {frequencyOptions.find(f => f.value === task.frequency)?.label || task.frequency}
                       </span>
@@ -333,7 +420,7 @@ export default function Maintenance() {
                       {task.estimatedCost > 0 && (
                         <span className="estimated-cost">
                           <DollarSign size={14} />
-                          ${task.estimatedCost.toLocaleString()}
+                          {task.estimatedCost.toLocaleString()}
                         </span>
                       )}
                       {task.contractor && (
@@ -354,7 +441,7 @@ export default function Maintenance() {
                     </div>
                   </div>
 
-                  <div className="task-actions">
+                  <div className="task-actions" onClick={(e) => e.stopPropagation()}>
                     {task.frequency !== 'one-time' && (
                       <button
                         className="btn btn-secondary btn-sm"
@@ -364,13 +451,6 @@ export default function Maintenance() {
                         Complete
                       </button>
                     )}
-                    <button
-                      className="btn btn-outline btn-sm"
-                      onClick={() => setShowEditModal(task)}
-                    >
-                      <Edit2 size={16} />
-                      Edit
-                    </button>
                     <button
                       className="btn btn-ghost btn-sm"
                       onClick={() => deleteMaintenanceTask(task.id)}
@@ -459,7 +539,7 @@ function TaskModal({ mode, task, onClose, onSave }) {
       location,
       estimatedCost: parseFloat(estimatedCost) || 0,
       contractor,
-      ...(frequency !== 'one-time' && { dueDate: new Date(dueDate).toISOString() })
+      ...(dueDate && { dueDate: new Date(dueDate).toISOString() })
     };
 
     onSave(taskData);
@@ -570,17 +650,20 @@ function TaskModal({ mode, task, onClose, onSave }) {
               </div>
             )}
 
-            {frequency !== 'one-time' && (
-              <div className="form-group">
-                <label className="form-label">Due Date</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                />
-              </div>
-            )}
+            <div className="form-group">
+              <label className="form-label">
+                {frequency === 'one-time' ? 'Scheduled Date (optional)' : 'Due Date'}
+              </label>
+              <input
+                type="date"
+                className="form-input"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+              {frequency === 'one-time' && (
+                <span className="form-hint">Leave blank if not scheduled yet</span>
+              )}
+            </div>
 
             <div className="form-group">
               <label className="form-label">Location</label>

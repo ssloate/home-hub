@@ -872,7 +872,19 @@ export const maintenanceCategories = [
 // Task type options
 export const taskTypes = [
   { value: "maintenance", label: "Maintenance" },
-  { value: "repair", label: "Repair" }
+  { value: "repair", label: "Repair" },
+  { value: "upgrade", label: "Upgrade" }
+];
+
+// Area categories for filtering tasks
+export const areaCategories = [
+  { value: "all", label: "All Areas" },
+  { value: "outdoor", label: "Outdoor" },
+  { value: "basement", label: "Basement" },
+  { value: "main-floor", label: "Main Floor" },
+  { value: "upper-floor", label: "Upper Floor" },
+  { value: "attic", label: "Attic" },
+  { value: "structure", label: "Structure" }
 ];
 
 // Priority levels
@@ -896,8 +908,9 @@ export const frequencyOptions = [
   { value: "custom", label: "Custom", days: null }
 ];
 
-// Cost categories - simplified to just Maintenance and Repair
+// Cost categories - includes Maintenance, Repair, and Upgrade
 export const costCategories = [
   "Maintenance",
-  "Repair"
+  "Repair",
+  "Upgrade"
 ];

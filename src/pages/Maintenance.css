@@ -159,6 +159,15 @@
   background: var(--neutral-100);
 }
 
+.task-card.clickable {
+  cursor: pointer;
+}
+
+.task-card.clickable:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
 .task-card.overdue {
   border-left-color: var(--error);
   background: var(--error-light);
@@ -402,6 +411,11 @@
   color: var(--primary-600);
 }
 
+.task-type-icon.upgrade {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #047857;
+}
+
 .task-title-group {
   flex: 1;
 }
@@ -426,6 +440,11 @@
 .type-badge.maintenance {
   background: linear-gradient(135deg, var(--primary-100) 0%, var(--secondary-100) 100%);
   color: var(--primary-600);
+}
+
+.type-badge.upgrade {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #047857;
 }
 
 /* Category Icon Badge */
@@ -504,6 +523,21 @@
 .stat-pill.maintenance.active {
   background: var(--primary-100);
   border-color: var(--primary-400);
+}
+
+.stat-pill.upgrade svg { color: #10b981; }
+
+.stat-pill.upgrade.active {
+  background: #d1fae5;
+  border-color: #10b981;
+}
+
+/* Form Hint */
+.form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--neutral-500);
+  margin-top: 0.25rem;
 }
 
 /* Checkbox Label in Forms */
