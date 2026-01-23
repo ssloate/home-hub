@@ -1,0 +1,343 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Mobile Header */
+.mobile-header {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: white;
+  border-bottom: 1px solid var(--neutral-200);
+  padding: 0 1rem;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 100;
+}
+
+.menu-btn,
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--neutral-700);
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.menu-btn:hover,
+.close-btn:hover {
+  background: var(--neutral-100);
+}
+
+.mobile-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--neutral-900);
+}
+
+.notification-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: var(--neutral-700);
+  border-radius: var(--radius);
+}
+
+.notification-btn:hover {
+  background: var(--neutral-100);
+}
+
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--error);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Sidebar Overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  background: white;
+  border-right: 1px solid var(--neutral-200);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 300;
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--neutral-100);
+}
+
+.sidebar-header .close-btn {
+  display: none;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-icon {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, var(--primary-400) 0%, var(--secondary-400) 100%);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.logo-text {
+  font-size: 1.375rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary-600) 0%, var(--secondary-600) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Sidebar Navigation */
+.sidebar-nav {
+  flex: 1;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  color: var(--neutral-600);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  transition: var(--transition);
+}
+
+.nav-item:hover {
+  background: var(--neutral-100);
+  color: var(--neutral-900);
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
+  color: var(--primary-600);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 3px;
+  height: 24px;
+  background: linear-gradient(180deg, var(--primary-500) 0%, var(--secondary-500) 100%);
+  border-radius: 0 4px 4px 0;
+}
+
+.nav-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--error);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  padding: 0.75rem;
+  border-top: 1px solid var(--neutral-100);
+}
+
+.user-section {
+  margin-top: 0.5rem;
+  position: relative;
+}
+
+.user-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: none;
+  background: var(--neutral-50);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.user-btn:hover {
+  background: var(--neutral-100);
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--primary-400) 0%, var(--secondary-400) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.user-info {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+}
+
+.user-name {
+  display: block;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--neutral-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--neutral-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  color: var(--neutral-400);
+  transition: var(--transition);
+}
+
+.chevron.open {
+  transform: rotate(180deg);
+}
+
+.user-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin-bottom: 0.5rem;
+  background: white;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.user-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  color: var(--neutral-700);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.user-menu-item:hover {
+  background: var(--neutral-100);
+  color: var(--error);
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  margin-left: 280px;
+  min-height: 100vh;
+}
+
+.content-wrapper {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .mobile-header {
+    display: flex;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-header .close-btn {
+    display: flex;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding-top: 60px;
+  }
+
+  .content-wrapper {
+    padding: 1.5rem 1rem;
+  }
+}

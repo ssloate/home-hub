@@ -1,0 +1,75 @@
+.link-preview {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.link-preview-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.link-preview-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.link-preview-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  color: white;
+}
+
+.link-preview-image:hover .link-preview-overlay {
+  opacity: 1;
+}
+
+.link-preview.loading .link-preview-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--neutral-100);
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--neutral-100) 0%,
+    var(--neutral-200) 50%,
+    var(--neutral-100) 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.link-preview.no-image .link-preview-fallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--primary-100) 0%, var(--secondary-100) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--neutral-400);
+}
