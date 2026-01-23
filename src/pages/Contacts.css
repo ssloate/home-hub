@@ -224,11 +224,6 @@
   color: #4f46e5;
 }
 
-.contact-icon.hoa {
-  background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
-  color: #9333ea;
-}
-
 .contact-icon.other {
   background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-200) 100%);
   color: var(--neutral-600);
