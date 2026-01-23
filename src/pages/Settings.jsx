@@ -261,66 +261,7 @@ export default function Settings() {
             </div>
           </div>
         </div>
-
-        {/* Data Management */}
-        <div className="settings-card">
-          <div className="settings-card-header">
-            <Database size={20} />
-            <h2>Data Management</h2>
-          </div>
-          <div className="settings-card-body">
-            <div className="setting-row">
-              <div className="setting-info">
-                <h3>Current Tasks</h3>
-                <p>You have {maintenanceTasks.length} maintenance tasks</p>
-              </div>
-            </div>
-
-            <div className="setting-row">
-              <div className="setting-info">
-                <h3>Reset Maintenance Tasks</h3>
-                <p>Replace all tasks with the default set (68 tasks including repairs from your spreadsheet)</p>
-              </div>
-              <button
-                className="btn btn-outline"
-                onClick={() => setShowResetConfirm(true)}
-              >
-                <RefreshCw size={16} />
-                Reset Tasks
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
-
-      {/* Reset Confirmation Modal */}
-      {showResetConfirm && (
-        <div className="modal-overlay" onClick={() => setShowResetConfirm(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Reset Maintenance Tasks?</h3>
-            </div>
-            <div className="modal-body">
-              <p>This will replace all your current maintenance tasks with the default set of 68 tasks, including:</p>
-              <ul style={{ margin: '1rem 0', paddingLeft: '1.5rem' }}>
-                <li>7 recurring maintenance tasks (HVAC, smoke detectors, gutters, etc.)</li>
-                <li>26 high priority repairs</li>
-                <li>27 medium priority repairs</li>
-                <li>8 low priority repairs</li>
-              </ul>
-              <p><strong>Warning:</strong> This will delete any tasks you've added or modified. This action cannot be undone.</p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" onClick={() => setShowResetConfirm(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleResetTasks}>
-                Reset to Defaults
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
