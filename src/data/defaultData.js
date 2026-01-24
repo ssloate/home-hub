@@ -24,19 +24,14 @@ export const propertyInfo = {
 
 export const roomCategories = [
   {
-    id: "backyard",
-    name: "Backyard",
+    id: "yard",
+    name: "Yard",
     icon: "Trees",
     subdivisions: [
-      { id: "deck", name: "Deck" },
-      { id: "yard", name: "Yard" }
+      { id: "backyard", name: "Backyard" },
+      { id: "front-yard", name: "Front Yard" },
+      { id: "deck", name: "Deck" }
     ]
-  },
-  {
-    id: "front-yard",
-    name: "Front Yard",
-    icon: "Home",
-    subdivisions: []
   },
   {
     id: "basement",
