@@ -125,7 +125,7 @@ export default function Dashboard() {
       <div className="welcome-section">
         <div className="welcome-content">
           <DecorationDots className="welcome-decoration" />
-          <h1>{greeting}, {user?.name?.split(' ')[0]}!</h1>
+          <h1>{greeting}, {user?.name}!</h1>
           <p>Here's what's happening with your home</p>
         </div>
         <div className="welcome-visual">
