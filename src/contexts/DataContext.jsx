@@ -402,8 +402,9 @@ export function DataProvider({ children }) {
     return maintenanceTasks
       .filter(task => {
         if (!task.isActive) return false;
-        const dueDate = new Date(task.dueDate);
-        return isBefore(dueDate, today);
+        if (!task.dueDate) return false;
+        const dueDate = startOfDay(new Date(task.dueDate));
+        return differenceInDays(dueDate, today) < 0;
       })
       .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
   }, [maintenanceTasks]);
