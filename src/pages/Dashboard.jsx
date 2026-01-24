@@ -67,18 +67,13 @@ export default function Dashboard() {
     };
   }, [maintenanceTasks, costs, getOverdueTasks, today]);
 
-  // Get next 5 upcoming tasks - sorted by priority (high to low), then by due date (soonest first)
+  // Get next 5 upcoming tasks - sorted by due date (soonest first)
   const nextTasks = useMemo(() => {
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
     return maintenanceTasks
       .filter(task => task.isActive)
       .sort((a, b) => {
-        // First sort by priority (high to low)
-        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-        if (priorityDiff !== 0) return priorityDiff;
-
-        // Within same priority, sort by due date (ascending - soonest first)
-        // Tasks without due dates go to the bottom of their priority group
+        // Sort by due date (ascending - soonest first)
+        // Tasks without due dates go to the bottom
         const aHasDate = !!a.dueDate;
         const bHasDate = !!b.dueDate;
 

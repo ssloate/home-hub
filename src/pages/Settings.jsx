@@ -10,12 +10,15 @@ import {
   Save,
   AlertCircle,
   RefreshCw,
-  Database
+  Database,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import './Settings.css';
 
 export default function Settings() {
-  const { user, updateUser, updateSettings } = useAuth();
+  const { user, updateUser, updateSettings, changePassword } = useAuth();
   const { resetMaintenanceTasks, maintenanceTasks } = useData();
 
   const [name, setName] = useState(user?.name || '');
@@ -26,6 +29,14 @@ export default function Settings() {
   const [notifyOnDueDate, setNotifyOnDueDate] = useState(user?.settings?.notifyOnDueDate ?? true);
   const [gmailUser, setGmailUser] = useState(user?.settings?.gmailUser || '');
   const [gmailAppPassword, setGmailAppPassword] = useState('');
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -58,6 +69,37 @@ export default function Settings() {
     setShowResetConfirm(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleChangePassword = () => {
+    setPasswordError('');
+    setError('');
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All password fields are required');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    try {
+      changePassword(currentPassword, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setPasswordError(err.message);
+    }
   };
 
   return (
@@ -109,6 +151,73 @@ export default function Settings() {
             </div>
             <button className="btn btn-primary" onClick={handleSaveProfile}>
               Save Profile
+            </button>
+          </div>
+        </div>
+
+        {/* Account Security */}
+        <div className="settings-card">
+          <div className="settings-card-header">
+            <Lock size={20} />
+            <h2>Account Security</h2>
+          </div>
+          <div className="settings-card-body">
+            {passwordError && (
+              <div className="error-message mb-4">
+                <AlertCircle size={16} />
+                {passwordError}
+              </div>
+            )}
+            <div className="form-group">
+              <label className="form-label">Current Password</label>
+              <div className="password-input-wrapper">
+                <input
+                  type={showCurrentPassword ? "text" : "password"}
+                  className="form-input"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                >
+                  {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">New Password</label>
+              <div className="password-input-wrapper">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  className="form-input"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password (min 6 characters)"
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Confirm New Password</label>
+              <input
+                type="password"
+                className="form-input"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+            </div>
+            <button className="btn btn-primary" onClick={handleChangePassword}>
+              Change Password
             </button>
           </div>
         </div>

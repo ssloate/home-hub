@@ -109,6 +109,24 @@ export function AuthProvider({ children }) {
     setUser(updatedUser);
   };
 
+  const changePassword = (currentPassword, newPassword) => {
+    if (!user) {
+      throw new Error('No user logged in');
+    }
+
+    // Verify current password
+    if (user.password !== currentPassword) {
+      throw new Error('Current password is incorrect');
+    }
+
+    // Update password
+    const updatedUser = { ...user, password: newPassword };
+    const updatedUsers = users.map(u => u.id === user.id ? updatedUser : u);
+
+    saveUsers(updatedUsers);
+    setUser(updatedUser);
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -119,6 +137,7 @@ export function AuthProvider({ children }) {
       logout,
       updateUser,
       updateSettings,
+      changePassword,
       isAuthenticated: !!user
     }}>
       {children}

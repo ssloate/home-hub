@@ -161,14 +161,8 @@ export default function Maintenance() {
         return true;
       })
       .sort((a, b) => {
-        const priorityOrder = { high: 0, medium: 1, low: 2 };
-
-        // First, sort by priority (high to low)
-        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-        if (priorityDiff !== 0) return priorityDiff;
-
-        // Within same priority, sort by due date (ascending - soonest first)
-        // Tasks without due dates go to the bottom of their priority group
+        // Sort by due date (ascending - soonest first)
+        // Tasks without due dates go to the bottom
         const aHasDate = !!a.dueDate;
         const bHasDate = !!b.dueDate;
 
