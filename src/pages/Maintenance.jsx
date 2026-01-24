@@ -6,7 +6,6 @@ import { format, differenceInDays, startOfDay, addDays } from 'date-fns';
 import {
   Plus,
   Search,
-  Filter,
   Calendar,
   CheckCircle2,
   Clock,
@@ -58,7 +57,6 @@ export default function Maintenance() {
   } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -95,11 +93,6 @@ export default function Maintenance() {
               !task.location?.toLowerCase().includes(query)) {
             return false;
           }
-        }
-
-        // Category filter
-        if (categoryFilter !== 'All' && task.category !== categoryFilter) {
-          return false;
         }
 
         // Priority filter
@@ -174,7 +167,7 @@ export default function Maintenance() {
 
         return 0; // both have no date, keep original order
       });
-  }, [maintenanceTasks, searchQuery, categoryFilter, priorityFilter, statusFilter, typeFilter, areaFilter, dateFilter, today]);
+  }, [maintenanceTasks, searchQuery, priorityFilter, statusFilter, typeFilter, areaFilter, dateFilter, today]);
 
   const getTaskStatus = (task) => {
     if (task.frequency === 'one-time') {
@@ -315,19 +308,7 @@ export default function Maintenance() {
         </div>
 
         <div className="filter-group">
-          <Filter size={16} />
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="filter-select"
-          >
-            {maintenanceCategories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group">
+          <AlertTriangle size={16} />
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
@@ -341,7 +322,7 @@ export default function Maintenance() {
         </div>
 
         <div className="filter-group">
-          <MapPin size={16} />
+          <Home size={16} />
           <select
             value={areaFilter}
             onChange={(e) => setAreaFilter(e.target.value)}
@@ -376,7 +357,7 @@ export default function Maintenance() {
             <CheckCircle2 size={48} />
             <h3>No tasks found</h3>
             <p>
-              {searchQuery || categoryFilter !== 'All' || priorityFilter !== 'all' || statusFilter !== 'all' || typeFilter !== 'all'
+              {searchQuery || priorityFilter !== 'all' || statusFilter !== 'all' || typeFilter !== 'all'
                 ? 'Try adjusting your filters'
                 : 'Add a maintenance task to get started'}
             </p>

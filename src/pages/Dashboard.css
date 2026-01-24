@@ -23,7 +23,20 @@
 }
 
 .welcome-decoration {
-  display: none;
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  opacity: 0.6;
+  z-index: 0;
+}
+
+@keyframes houseFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 .welcome-content h1 {
@@ -50,6 +63,7 @@
   height: auto;
   border-radius: var(--radius);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  animation: houseFloat 3s ease-in-out infinite;
 }
 
 .property-badge {
@@ -247,8 +261,13 @@
   border-bottom: 1px solid var(--neutral-100);
 }
 
+.task-item:first-child {
+  padding-top: 0;
+}
+
 .task-item:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
 
 

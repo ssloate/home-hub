@@ -12,9 +12,7 @@ import {
   DollarSign,
   ArrowRight,
   Calendar,
-  TrendingUp,
-  Wrench,
-  LayoutGrid
+  TrendingUp
 } from 'lucide-react';
 import { DecorationDots } from '../components/HouseIllustrations';
 import houseImage from '../assets/house-icon.png';
@@ -259,38 +257,6 @@ export default function Dashboard() {
             <div className="cost-summary">
               <span>Year to Date</span>
               <span className="cost-total">${stats.thisYearTotal.toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Links */}
-        <div className="dashboard-card quick-links-card">
-          <div className="card-header">
-            <div className="card-title">
-              <LayoutGrid size={20} />
-              <h2>Quick Actions</h2>
-            </div>
-          </div>
-          <div className="card-body">
-            <div className="quick-links">
-              <Link to="/rooms" className="quick-link">
-                <div className="quick-link-icon rooms">
-                  <LayoutGrid size={24} />
-                </div>
-                <span>Browse Rooms</span>
-              </Link>
-              <Link to="/maintenance" className="quick-link">
-                <div className="quick-link-icon maintenance">
-                  <Wrench size={24} />
-                </div>
-                <span>Maintenance</span>
-              </Link>
-              <Link to="/costs" className="quick-link">
-                <div className="quick-link-icon costs">
-                  <DollarSign size={24} />
-                </div>
-                <span>Track Costs</span>
-              </Link>
             </div>
           </div>
         </div>
