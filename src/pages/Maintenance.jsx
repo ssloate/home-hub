@@ -369,11 +369,12 @@ export default function Maintenance() {
               const taskStatus = getTaskStatus(task);
 
               return (
-                <div
-                  key={task.id}
-                  className={`task-card ${taskStatus.status} clickable`}
-                  onClick={() => setShowEditModal(task)}
-                >
+              <div
+                key={task.id}
+                // Added !task.isActive check here to apply the 'is-completed' class
+                className={`task-card ${taskStatus.status} ${!task.isActive ? 'is-completed' : ''} clickable`}
+                onClick={() => setShowEditModal(task)}
+              >
                   <div className="task-icon-wrapper">
                     <div className={`task-type-icon ${task.taskType}`}>
                       {task.taskType === 'repair' ? <Hammer size={20} /> :
