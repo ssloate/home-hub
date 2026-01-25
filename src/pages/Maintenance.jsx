@@ -503,6 +503,8 @@ export default function Maintenance() {
       {showAddModal && (
         <TaskModal
           mode="add"
+          /* Pass the task object if showAddModal contains one, otherwise pass null */
+          task={typeof showAddModal === 'object' ? showAddModal : null}
           onClose={() => setShowAddModal(false)}
           onSave={addMaintenanceTask}
         />
@@ -555,7 +557,6 @@ function TaskModal({ mode, task, onClose, onSave }) {
   const [estimatedCost, setEstimatedCost] = useState('');
   const [contractor, setContractor] = useState(false);
 
-  // This Effect runs whenever the "task" prop changes.
   useEffect(() => {
     if (task) {
       // Pre-fill ALL information from the template or existing task
@@ -827,13 +828,15 @@ function CompleteTaskModal({ task, onClose, onComplete }) {
 
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => {
-              // We pass the entire task object as the template for showAddModal
+              // This triggers the Add Modal and fills it with this task's data
               setShowAddModal({
                 ...task,
-                isReopenTemplate: true // Flag to help the modal identify this is a template
+                isReopenTemplate: true, // Flag for the modal logic
+                dueDate: '' // Ensure date starts blank
               });
             }}
           >
