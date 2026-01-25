@@ -242,7 +242,7 @@
 }
 
 .dashboard-card .card-footer {
-  padding: 0.875rem 1.25rem;
+  padding: 0.75rem 0.75rem;
   background: var(--neutral-50);
   border-top: 1px solid var(--neutral-100);
 }
@@ -257,8 +257,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem; /* Increased from 0.75rem */
-  background: var(--neutral-50);
+  padding: 0.75rem;
   border-radius: var(--radius-md);
   margin-bottom: 0.75rem;
   border: 1px solid transparent;
@@ -276,11 +275,6 @@
   border-radius: 4px;
 }
 
-.task-item:hover {
-  background: white;
-  border-color: var(--neutral-200);
-  box-shadow: var(--shadow-sm);
-}
 
 .task-main {
   display: flex;
