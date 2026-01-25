@@ -82,7 +82,7 @@ export default function Maintenance() {
   const filteredTasks = useMemo(() => {
     return maintenanceTasks
       .filter(task => {
-        if (!task.isActive) return false;
+        if (!task.isActive && statusFilter !== 'completed') return false;
 
         // Search filter
         if (searchQuery) {
