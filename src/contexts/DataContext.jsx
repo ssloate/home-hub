@@ -430,24 +430,30 @@ export function DataProvider({ children }) {
     setMaintenanceTasks(prev => prev.filter(task => task.id !== taskId));
   }, []);
 
-  const completeMaintenanceTask = useCallback((taskId, notes = '') => {
+    const completeMaintenanceTask = useCallback((taskId, notes = '') => {
     const today = new Date();
 
     setMaintenanceTasks(prev => prev.map(task => {
       if (task.id === taskId) {
+        const isOneTime = task.frequency === 'one-time';
+        
         const completionEntry = {
           id: uuidv4(),
           completedAt: today.toISOString(),
           notes
         };
 
-        // Calculate next due date based on interval
-        const nextDueDate = addDays(today, task.intervalDays);
+        // If recurring, calculate next due date. If one-time, set to null.
+        const nextDueDate = !isOneTime 
+          ? addDays(today, task.intervalDays).toISOString() 
+          : null;
 
         return {
           ...task,
-          dueDate: nextDueDate.toISOString(),
-          completionHistory: [...task.completionHistory, completionEntry]
+          // One-time tasks become inactive so they disappear from the main list
+          isActive: !isOneTime,
+          dueDate: nextDueDate,
+          completionHistory: [...(task.completionHistory || []), completionEntry]
         };
       }
       return task;

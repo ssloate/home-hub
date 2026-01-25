@@ -440,14 +440,24 @@ export default function Maintenance() {
                   </div>
 
                   <div className="task-actions" onClick={(e) => e.stopPropagation()}>
-                    {<button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => setShowCompleteModal(task)}
-                      >
-                        <CheckCircle2 size={16} />
-                        Complete
-                      </button>
-                    }
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        if (task.frequency === 'one-time') {
+                          // Direct completion for one-time tasks
+                          if (window.confirm(`Mark "${task.name}" as complete?`)) {
+                            completeMaintenanceTask(task.id, 'Completed one-time task');
+                          }
+                        } else {
+                          // Show rescheduling modal for recurring tasks
+                          setShowCompleteModal(task);
+                        }
+                      }}
+                    >
+                      <CheckCircle2 size={16} />
+                      Complete
+                    </button>
+
                     <button
                       className="btn btn-ghost btn-sm"
                       onClick={() => deleteMaintenanceTask(task.id)}
