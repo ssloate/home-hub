@@ -208,10 +208,10 @@ export default function Dashboard() {
                         <span className="task-category">{task.category}</span>
                       </div>
                       <div className="task-due">
+                        <span className={`due-dot ${status}`} />
                         <span className={`due-badge ${status}`}>
                           {formatDueDate(task.dueDate)}
                         </span>
-                        <span className={`priority-dot priority-${task.priority}`} />
                       </div>
                     </div>
                   );

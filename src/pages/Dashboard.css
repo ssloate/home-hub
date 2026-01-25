@@ -323,22 +323,23 @@
   color: var(--neutral-600);
 }
 
-.priority-dot {
-  width: 6px;
-  height: 6px;
+.due-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.priority-dot.priority-low {
-  background: var(--secondary-400);
-}
-
-.priority-dot.priority-medium {
-  background: var(--warning);
-}
-
-.priority-dot.priority-high {
+/* Red for overdue, today, or within a week */
+.due-dot.overdue,
+.due-dot.today,
+.due-dot.soon {
   background: var(--error);
+}
+
+/* Yellow for due within a month (but more than a week) */
+.due-dot.upcoming {
+  background: var(--warning);
 }
 
 /* Cost List */
