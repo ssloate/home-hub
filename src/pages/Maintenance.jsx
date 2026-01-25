@@ -440,15 +440,14 @@ export default function Maintenance() {
                   </div>
 
                   <div className="task-actions" onClick={(e) => e.stopPropagation()}>
-                    {task.frequency !== 'one-time' && (
-                      <button
+                    {<button
                         className="btn btn-secondary btn-sm"
                         onClick={() => setShowCompleteModal(task)}
                       >
                         <CheckCircle2 size={16} />
                         Complete
                       </button>
-                    )}
+                    }
                     <button
                       className="btn btn-ghost btn-sm"
                       onClick={() => deleteMaintenanceTask(task.id)}
