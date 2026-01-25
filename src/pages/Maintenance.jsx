@@ -54,7 +54,8 @@ export default function Maintenance() {
     updateMaintenanceTask,
     deleteMaintenanceTask,
     completeMaintenanceTask,
-    reopenMaintenanceTask
+    reopenMaintenanceTask,
+    clearCompletedTasks // FIXED: Added this here
   } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,6 +73,7 @@ export default function Maintenance() {
       setTypeFilter('all');
     }
   }, [searchParams]);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(null);
@@ -85,7 +87,6 @@ export default function Maintenance() {
       .filter(task => {
         if (!task.isActive && statusFilter !== 'completed') return false;
 
-        // Search filter
         if (searchQuery) {
           const query = searchQuery.toLowerCase();
           if (!task.name.toLowerCase().includes(query) &&
@@ -96,38 +97,24 @@ export default function Maintenance() {
           }
         }
 
-        // Priority filter
-        if (priorityFilter !== 'all' && task.priority !== priorityFilter) {
-          return false;
-        }
+        if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false;
+        if (typeFilter !== 'all' && task.taskType !== typeFilter) return false;
 
-        // Task type filter
-        if (typeFilter !== 'all' && task.taskType !== typeFilter) {
-          return false;
-        }
-
-        // Status filter
         if (statusFilter !== 'all') {
-          // 1. If we are looking for completed tasks, only check history
           if (statusFilter === 'completed') {
-            if (!task.completionHistory || task.completionHistory.length === 0) return false;
-          } 
-          // 2. Otherwise, handle the date-based filters (Overdue, Due Soon, etc.)
-          else {
-            if (!task.dueDate) {
-              return false; // Hide tasks without dates from Overdue/Due-Soon/Upcoming
-            } else {
-              const dueDate = startOfDay(new Date(task.dueDate));
-              const daysUntilDue = differenceInDays(dueDate, today);
+            if (task.isActive) return false;
+          } else {
+            if (!task.isActive) return false;
+            if (!task.dueDate) return false;
+            const dueDate = startOfDay(new Date(task.dueDate));
+            const daysUntilDue = differenceInDays(dueDate, today);
 
-              if (statusFilter === 'overdue' && daysUntilDue >= 0) return false;
-              if (statusFilter === 'due-soon' && (daysUntilDue < 0 || daysUntilDue > 30)) return false;
-              if (statusFilter === 'upcoming' && daysUntilDue <= 30) return false;
-            }
+            if (statusFilter === 'overdue' && daysUntilDue >= 0) return false;
+            if (statusFilter === 'due-soon' && (daysUntilDue < 0 || daysUntilDue > 30)) return false;
+            if (statusFilter === 'upcoming' && daysUntilDue <= 30) return false;
           }
         }
 
-        // Area filter - match based on location
         if (areaFilter !== 'all') {
           const location = (task.location || '').toLowerCase();
           const areaMatches = {
@@ -141,8 +128,8 @@ export default function Maintenance() {
           if (!areaMatches[areaFilter]) return false;
         }
 
-        // Date filter
         if (dateFilter !== 'all' && task.frequency !== 'one-time') {
+          if (!task.dueDate) return false;
           const dueDate = startOfDay(new Date(task.dueDate));
           const daysUntilDue = differenceInDays(dueDate, today);
 
@@ -155,24 +142,17 @@ export default function Maintenance() {
         return true;
       })
       .sort((a, b) => {
-        // Sort by due date (ascending - soonest first)
-        // Tasks without due dates go to the bottom
         const aHasDate = !!a.dueDate;
         const bHasDate = !!b.dueDate;
-
-        if (aHasDate && bHasDate) {
-          return new Date(a.dueDate) - new Date(b.dueDate);
-        }
-        if (aHasDate && !bHasDate) return -1; // a has date, goes first
-        if (!aHasDate && bHasDate) return 1;  // b has date, goes first
-
-        return 0; // both have no date, keep original order
+        if (aHasDate && bHasDate) return new Date(a.dueDate) - new Date(b.dueDate);
+        if (aHasDate && !bHasDate) return -1;
+        if (!aHasDate && bHasDate) return 1;
+        return 0;
       });
   }, [maintenanceTasks, searchQuery, priorityFilter, statusFilter, typeFilter, areaFilter, dateFilter, today]);
 
   const getTaskStatus = (task) => {
     if (task.frequency === 'one-time') {
-      // One-time tasks can have an optional scheduled date
       if (task.dueDate) {
         const due = startOfDay(new Date(task.dueDate));
         const daysUntilDue = differenceInDays(due, today);
@@ -193,18 +173,11 @@ export default function Maintenance() {
     return { status: 'upcoming', label: format(due, 'MMM d, yyyy'), color: 'neutral' };
   };
 
-  // Stats
   const stats = useMemo(() => {
     const activeTasks = maintenanceTasks.filter(t => t.isActive);
     const tasksWithDueDate = activeTasks.filter(t => t.dueDate);
-    const repairTasks = activeTasks.filter(t => t.taskType === 'repair');
-    const maintenanceTasks2 = activeTasks.filter(t => t.taskType === 'maintenance');
-    const upgradeTasks = activeTasks.filter(t => t.taskType === 'upgrade');
-
-    // Count total completions across all tasks
-    const totalCompletions = maintenanceTasks.reduce(
-      (sum, task) => sum + (task.completionHistory?.length || 0), 0
-    );
+    const totalCompletions = maintenanceTasks.reduce((sum, task) => sum + (task.completionHistory?.length || 0), 0);
+    const completedListCount = maintenanceTasks.filter(t => !t.isActive).length;
 
     return {
       total: activeTasks.length,
@@ -214,9 +187,10 @@ export default function Maintenance() {
         return days >= 0 && days <= 30;
       }).length,
       completed: totalCompletions,
-      repairs: repairTasks.length,
-      maintenance: maintenanceTasks2.length,
-      upgrades: upgradeTasks.length
+      historyCount: completedListCount, // For the Clear History logic
+      repairs: activeTasks.filter(t => t.taskType === 'repair').length,
+      maintenance: activeTasks.filter(t => t.taskType === 'maintenance').length,
+      upgrades: activeTasks.filter(t => t.taskType === 'upgrade').length
     };
   }, [maintenanceTasks, today]);
 
@@ -230,254 +204,108 @@ export default function Maintenance() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Maintenance & Repairs</h1>
-          <p className="page-subtitle">Keep your home in top shape with scheduled tasks</p>
+          <p className="page-subtitle">Keep your home in top shape</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-          <Plus size={18} /> Add Task
-        </button>
+        <div className="header-actions" style={{ display: 'flex', gap: '10px' }}>
+          {statusFilter === 'completed' && stats.historyCount > 0 && (
+            <button className="btn btn-ghost" onClick={() => {
+              if (window.confirm("Clear all completed task history?")) clearCompletedTasks();
+            }}>
+              <Trash2 size={18} /> Clear Completed
+            </button>
+          )}
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+            <Plus size={18} /> Add Task
+          </button>
+        </div>
       </div>
 
-      {/* Stats */}
       <div className="maintenance-stats">
-        <button
-          className={`stat-pill ${statusFilter === 'all' && typeFilter === 'all' ? 'active' : ''}`}
-          onClick={() => { setStatusFilter('all'); setTypeFilter('all'); }}
-        >
+        <button className={`stat-pill ${statusFilter === 'all' && typeFilter === 'all' ? 'active' : ''}`} onClick={() => { setStatusFilter('all'); setTypeFilter('all'); }}>
           <span className="stat-count">{stats.total}</span>
           <span className="stat-label">All Tasks</span>
         </button>
-        <button
-          className={`stat-pill overdue ${statusFilter === 'overdue' ? 'active' : ''}`}
-          onClick={() => { setStatusFilter('overdue'); setTypeFilter('all'); }}
-        >
+        <button className={`stat-pill overdue ${statusFilter === 'overdue' ? 'active' : ''}`} onClick={() => { setStatusFilter('overdue'); setTypeFilter('all'); }}>
           <AlertTriangle size={16} />
           <span className="stat-count">{stats.overdue}</span>
           <span className="stat-label">Overdue</span>
         </button>
-        <button
-          className={`stat-pill due-soon ${statusFilter === 'due-soon' ? 'active' : ''}`}
-          onClick={() => { setStatusFilter('due-soon'); setTypeFilter('all'); }}
-        >
+        <button className={`stat-pill due-soon ${statusFilter === 'due-soon' ? 'active' : ''}`} onClick={() => { setStatusFilter('due-soon'); setTypeFilter('all'); }}>
           <Clock size={16} />
           <span className="stat-count">{stats.dueSoon}</span>
           <span className="stat-label">Due Soon</span>
         </button>
-        <button
-          className={`stat-pill completed ${statusFilter === 'completed' ? 'active' : ''}`}
-          onClick={() => { setStatusFilter('completed'); setTypeFilter('all'); }}
-        >
+        <button className={`stat-pill completed ${statusFilter === 'completed' ? 'active' : ''}`} onClick={() => { setStatusFilter('completed'); setTypeFilter('all'); }}>
           <CheckCircle2 size={16} />
-          <span className="stat-count">{stats.completed}</span>
-          <span className="stat-label">Completed</span>
-        </button>
-        <button
-          className={`stat-pill repair ${typeFilter === 'repair' ? 'active' : ''}`}
-          onClick={() => { setTypeFilter('repair'); setStatusFilter('all'); }}
-        >
-          <Hammer size={16} />
-          <span className="stat-count">{stats.repairs}</span>
-          <span className="stat-label">Repairs</span>
-        </button>
-        <button
-          className={`stat-pill maintenance ${typeFilter === 'maintenance' ? 'active' : ''}`}
-          onClick={() => { setTypeFilter('maintenance'); setStatusFilter('all'); }}
-        >
-          <Wrench size={16} />
-          <span className="stat-count">{stats.maintenance}</span>
-          <span className="stat-label">Maintenance</span>
-        </button>
-        <button
-          className={`stat-pill upgrade ${typeFilter === 'upgrade' ? 'active' : ''}`}
-          onClick={() => { setTypeFilter('upgrade'); setStatusFilter('all'); }}
-        >
-          <TrendingUp size={16} />
-          <span className="stat-count">{stats.upgrades}</span>
-          <span className="stat-label">Upgrades</span>
+          <span className="stat-count">{stats.historyCount}</span>
+          <span className="stat-label">History</span>
         </button>
       </div>
 
-      {/* Filters */}
       <div className="filters-bar">
         <div className="search-box">
           <Search size={18} />
-          <input
-            type="text"
-            placeholder="Search tasks..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <input type="text" placeholder="Search tasks..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
-
         <div className="filter-group">
           <AlertTriangle size={16} />
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="filter-select"
-          >
+          <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="filter-select">
             <option value="all">All Priorities</option>
-            {priorityLevels.map(p => (
-              <option key={p.value} value={p.value}>{p.label} Priority</option>
-            ))}
+            {priorityLevels.map(p => <option key={p.value} value={p.value}>{p.label} Priority</option>)}
           </select>
         </div>
-
         <div className="filter-group">
           <Home size={16} />
-          <select
-            value={areaFilter}
-            onChange={(e) => setAreaFilter(e.target.value)}
-            className="filter-select"
-          >
-            {areaCategories.map(area => (
-              <option key={area.value} value={area.value}>{area.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <CalendarDays size={16} />
-          <select
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Dates</option>
-            <option value="today">Due Today</option>
-            <option value="this-week">This Week</option>
-            <option value="this-month">This Month</option>
-            <option value="this-quarter">This Quarter</option>
+          <select value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} className="filter-select">
+            {areaCategories.map(area => <option key={area.value} value={area.value}>{area.label}</option>)}
           </select>
         </div>
       </div>
 
-      {/* Task List */}
       <div className="task-list-container">
         {filteredTasks.length === 0 ? (
           <div className="empty-state">
             <CheckCircle2 size={48} />
             <h3>No tasks found</h3>
-            <p>
-              {searchQuery || priorityFilter !== 'all' || statusFilter !== 'all' || typeFilter !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Add a maintenance task to get started'}
-            </p>
+            <p>Try adjusting your filters</p>
           </div>
         ) : (
           <div className="task-list">
             {filteredTasks.map(task => {
               const taskStatus = getTaskStatus(task);
-
               return (
-              <div
-                key={task.id}
-                // Added !task.isActive check here to apply the 'is-completed' class
-                className={`task-card ${taskStatus.status} ${!task.isActive ? 'is-completed' : ''} clickable`}
-                onClick={() => setShowEditModal(task)}
-              >
+                <div key={task.id} className={`task-card ${taskStatus.status} ${!task.isActive ? 'is-completed' : ''} clickable`} onClick={() => setShowEditModal(task)}>
                   <div className="task-icon-wrapper">
                     <div className={`task-type-icon ${task.taskType}`}>
-                      {task.taskType === 'repair' ? <Hammer size={20} /> :
-                       task.taskType === 'upgrade' ? <TrendingUp size={20} /> : <Wrench size={20} />}
+                      {task.taskType === 'repair' ? <Hammer size={20} /> : task.taskType === 'upgrade' ? <TrendingUp size={20} /> : <Wrench size={20} />}
                     </div>
                   </div>
-
                   <div className="task-main">
                     <div className="task-header">
                       <h3 className="task-name">{task.name}</h3>
                       <div className="task-badges">
-                        <span className={`type-badge ${task.taskType}`}>
-                          {task.taskType === 'repair' ? 'Repair' : task.taskType === 'upgrade' ? 'Upgrade' : 'Maintenance'}
-                        </span>
-                        <span className={`priority-badge priority-${task.priority}`}>
-                          {task.priority}
-                        </span>
-                        <span className="category-badge">
-                          {getCategoryIcon(task.category)}
-                          {task.category}
-                        </span>
+                        <span className={`type-badge ${task.taskType}`}>{task.taskType}</span>
+                        <span className={`priority-badge priority-${task.priority}`}>{task.priority}</span>
                       </div>
                     </div>
-
-                    {task.description && (
-                      <p className="task-description">{task.description}</p>
-                    )}
-
+                    {task.description && <p className="task-description">{task.description}</p>}
                     <div className="task-meta">
-                      <span className={`due-status ${taskStatus.color}`}>
-                        <Calendar size={14} />
-                        {taskStatus.label}
-                      </span>
-                      <span className="frequency">
-                        {frequencyOptions.find(f => f.value === task.frequency)?.label || task.frequency}
-                      </span>
-                      {task.location && (
-                        <span className="location">
-                          <MapPin size={14} />
-                          {task.location}
-                        </span>
-                      )}
-                      {task.estimatedCost > 0 && (
-                        <span className="estimated-cost">
-                          <DollarSign size={14} />
-                          {task.estimatedCost.toLocaleString()}
-                        </span>
-                      )}
-                      {task.contractor && (
-                        <span className="contractor-badge">
-                          <User size={14} />
-                          Contractor
-                        </span>
-                      )}
-                      {task.completionHistory?.length > 0 && (
-                        <button
-                          className="history-btn"
-                          onClick={() => setShowHistoryModal(task)}
-                        >
-                          <History size={14} />
-                          {task.completionHistory.length} completions
-                        </button>
-                      )}
+                      <span className={`due-status ${taskStatus.color}`}><Calendar size={14} />{taskStatus.label}</span>
+                      {task.location && <span className="location"><MapPin size={14} />{task.location}</span>}
                     </div>
                   </div>
-
                   <div className="task-actions" onClick={(e) => e.stopPropagation()}>
                     {task.isActive ? (
-                      /* SHOW COMPLETE BUTTON IF ACTIVE */
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          if (task.frequency === 'one-time') {
-                            if (window.confirm(`Mark "${task.name}" as complete?`)) {
-                              completeMaintenanceTask(task.id, 'Completed one-time task');
-                            }
-                          } else {
-                            setShowCompleteModal(task);
-                          }
-                        }}
-                      >
-                        <CheckCircle2 size={16} />
-                        Complete
+                      <button className="btn btn-secondary btn-sm" onClick={() => task.frequency === 'one-time' ? (window.confirm(`Complete ${task.name}?`) && completeMaintenanceTask(task.id)) : setShowCompleteModal(task)}>
+                        <CheckCircle2 size={16} /> Complete
                       </button>
                     ) : (
-                      /* SHOW REOPEN BUTTON IF INACTIVE */
-                      <button
-                        className="btn btn-outline-primary btn-sm"
-                        onClick={() => reopenMaintenanceTask(task.id)}
-                      >
-                        <History size={16} />
-                        Reopen
+                      <button className="btn btn-secondary btn-sm" onClick={() => setShowAddModal({...task, dueDate: ''})}>
+                        <History size={16} /> Reopen
                       </button>
                     )}
-
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => deleteMaintenanceTask(task.id)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => deleteMaintenanceTask(task.id)}><Trash2 size={16} /></button>
                   </div>
-
                 </div>
               );
             })}
@@ -485,249 +313,102 @@ export default function Maintenance() {
         )}
       </div>
 
-      {/* Add Task Modal */}
       {showAddModal && (
-        <TaskModal
-          mode="add"
-          onClose={() => setShowAddModal(false)}
-          onSave={addMaintenanceTask}
+        <TaskModal 
+          mode="add" 
+          task={typeof showAddModal === 'object' ? showAddModal : null} // FIXED: Properly passing template task
+          onClose={() => setShowAddModal(false)} 
+          onSave={addMaintenanceTask} 
         />
       )}
-
-      {/* Edit Task Modal */}
-      {showEditModal && (
-        <TaskModal
-          mode="edit"
-          task={showEditModal}
-          onClose={() => setShowEditModal(null)}
-          onSave={(updates) => {
-            updateMaintenanceTask(showEditModal.id, updates);
-            setShowEditModal(null);
-          }}
-        />
-      )}
-
-      {/* Complete Task Modal */}
-      {showCompleteModal && (
-        <CompleteTaskModal
-          task={showCompleteModal}
-          onClose={() => setShowCompleteModal(null)}
-          onComplete={completeMaintenanceTask}
-        />
-      )}
-
-      {/* History Modal */}
-      {showHistoryModal && (
-        <HistoryModal
-          task={showHistoryModal}
-          onClose={() => setShowHistoryModal(null)}
-        />
-      )}
+      {showEditModal && <TaskModal mode="edit" task={showEditModal} onClose={() => setShowEditModal(null)} onSave={(updates) => { updateMaintenanceTask(showEditModal.id, updates); setShowEditModal(null); }} />}
+      {showCompleteModal && <CompleteTaskModal task={showCompleteModal} onClose={() => setShowCompleteModal(null)} onComplete={completeMaintenanceTask} />}
+      {showHistoryModal && <HistoryModal task={showHistoryModal} onClose={() => setShowHistoryModal(null)} />}
     </div>
   );
 }
 
-// Add/Edit Task Modal
 function TaskModal({ mode, task, onClose, onSave }) {
-  const [name, setName] = useState(task?.name || '');
-  const [description, setDescription] = useState(task?.description || '');
-  const [category, setCategory] = useState(task?.category || 'HVAC');
-  const [priority, setPriority] = useState(task?.priority || 'medium');
-  const [frequency, setFrequency] = useState(task?.frequency || 'monthly');
-  const [customDays, setCustomDays] = useState(task?.intervalDays?.toString() || '');
-  const [dueDate, setDueDate] = useState(task?.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '');
-  const [taskType, setTaskType] = useState(task?.taskType || 'maintenance');
-  const [location, setLocation] = useState(task?.location || '');
-  const [estimatedCost, setEstimatedCost] = useState(task?.estimatedCost?.toString() || '');
-  const [contractor, setContractor] = useState(task?.contractor || false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('HVAC');
+  const [priority, setPriority] = useState('medium');
+  const [frequency, setFrequency] = useState('monthly');
+  const [customDays, setCustomDays] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [taskType, setTaskType] = useState('maintenance');
+  const [location, setLocation] = useState('');
+  const [estimatedCost, setEstimatedCost] = useState('');
+  const [contractor, setContractor] = useState(false);
+
+  useEffect(() => {
+    if (task) {
+      setName(task.name || '');
+      setDescription(task.description || '');
+      setCategory(task.category || 'HVAC');
+      setPriority(task.priority || 'medium');
+      setFrequency(task.frequency || 'monthly');
+      setCustomDays(task.intervalDays?.toString() || '');
+      setDueDate(task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '');
+      setTaskType(task.taskType || 'maintenance');
+      setLocation(task.location || '');
+      setEstimatedCost(task.estimatedCost?.toString() || '');
+      setContractor(task.contractor || false);
+    } else {
+      setName(''); setDescription(''); setCategory('HVAC'); setPriority('medium');
+      setFrequency('monthly'); setCustomDays(''); setDueDate(''); setTaskType('maintenance');
+      setLocation(''); setEstimatedCost(''); setContractor(false);
+    }
+  }, [task]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim()) return;
-
     const freq = frequencyOptions.find(f => f.value === frequency);
     const intervalDays = frequency === 'custom' ? parseInt(customDays) : (freq?.days || 0);
 
-    const taskData = {
-      name,
-      description,
-      category,
-      priority,
-      frequency,
-      intervalDays,
-      taskType,
-      location,
-      estimatedCost: parseFloat(estimatedCost) || 0,
-      contractor,
-      ...(dueDate && { dueDate: new Date(dueDate).toISOString() })
-    };
-
-    onSave(taskData);
-    if (mode === 'add') onClose();
+    onSave({
+      name, description, category, priority, frequency, intervalDays,
+      taskType, location, estimatedCost: parseFloat(estimatedCost) || 0,
+      contractor, dueDate: dueDate ? new Date(dueDate).toISOString() : null
+    });
+    onClose();
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal large" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{mode === 'add' ? 'Add Task' : 'Edit Task'}</h3>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>
-            <X size={18} />
-          </button>
+          <h3>{mode === 'add' ? (task ? 'Reopen Task' : 'Add Task') : 'Edit Task'}</h3>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}><X size={18} /></button>
         </div>
-
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            <div className="form-group">
-              <label className="form-label">Task Name *</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g., Replace HVAC Filter"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Description</label>
-              <textarea
-                className="form-textarea"
-                placeholder="Add details about this task..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-
+            <div className="form-group"><label className="form-label">Task Name *</label><input type="text" className="form-input" value={name} onChange={(e) => setName(e.target.value)} required /></div>
+            <div className="form-group"><label className="form-label">Description</label><textarea className="form-textarea" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
             <div className="form-row-2">
               <div className="form-group">
                 <label className="form-label">Task Type</label>
-                <select
-                  className="form-select"
-                  value={taskType}
-                  onChange={(e) => setTaskType(e.target.value)}
-                >
-                  {taskTypes.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
+                <select className="form-select" value={taskType} onChange={(e) => setTaskType(e.target.value)}>
+                  {taskTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
-
               <div className="form-group">
                 <label className="form-label">Category</label>
-                <select
-                  className="form-select"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  {maintenanceCategories.filter(c => c !== 'All').map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
+                <select className="form-select" value={category} onChange={(e) => setCategory(e.target.value)}>
+                  {maintenanceCategories.filter(c => c !== 'All').map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
             </div>
-
-            <div className="form-row-2">
-              <div className="form-group">
-                <label className="form-label">Priority</label>
-                <select
-                  className="form-select"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                >
-                  {priorityLevels.map(p => (
-                    <option key={p.value} value={p.value}>{p.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Frequency</label>
-                <select
-                  className="form-select"
-                  value={frequency}
-                  onChange={(e) => setFrequency(e.target.value)}
-                >
-                  {frequencyOptions.map(f => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {frequency === 'custom' && (
-              <div className="form-group">
-                <label className="form-label">Days Between</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="e.g., 45"
-                  value={customDays}
-                  onChange={(e) => setCustomDays(e.target.value)}
-                  min="1"
-                />
-              </div>
-            )}
-
             <div className="form-group">
-              <label className="form-label">
-                {frequency === 'one-time' ? 'Scheduled Date (optional)' : 'Due Date'}
-              </label>
-              <input
-                type="date"
-                className="form-input"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-              {frequency === 'one-time' && (
-                <span className="form-hint">Leave blank if not scheduled yet</span>
-              )}
+              <label className="form-label">Due Date</label>
+              <input type="date" className="form-input" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required={frequency !== 'one-time'} />
             </div>
-
-            <div className="form-group">
-              <label className="form-label">Location</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g., Basement - Electrical Room"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
-            </div>
-
-            <div className="form-row-2">
-              <div className="form-group">
-                <label className="form-label">Estimated Cost ($)</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="0"
-                  value={estimatedCost}
-                  onChange={(e) => setEstimatedCost(e.target.value)}
-                  min="0"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Requires Contractor?</label>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={contractor}
-                    onChange={(e) => setContractor(e.target.checked)}
-                  />
-                  <span>Yes, needs professional help</span>
-                </label>
-              </div>
-            </div>
+            <div className="form-group"><label className="form-label">Location</label><input type="text" className="form-input" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
           </div>
-
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary">
-              {mode === 'add' ? 'Add Task' : 'Save Changes'}
-            </button>
+            <button type="submit" className="btn btn-primary">{mode === 'add' ? 'Create Task' : 'Save Changes'}</button>
           </div>
         </form>
       </div>
@@ -735,97 +416,43 @@ function TaskModal({ mode, task, onClose, onSave }) {
   );
 }
 
-// Complete Task Modal
 function CompleteTaskModal({ task, onClose, onComplete }) {
   const [notes, setNotes] = useState('');
-
-  const handleComplete = () => {
-    onComplete(task.id, notes);
-    onClose();
-  };
-
+  const handleComplete = () => { onComplete(task.id, notes); onClose(); };
   const nextDueDate = addDays(new Date(), task.intervalDays);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Complete Task</h3>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-
+        <div className="modal-header"><h3>Complete Task</h3><button className="btn btn-ghost btn-sm" onClick={onClose}><X size={18} /></button></div>
         <div className="modal-body">
           <div className="complete-task-info">
             <h4>{task.name}</h4>
-            <p>Mark this task as complete. It will be automatically rescheduled for:</p>
-            <div className="next-due">
-              <Calendar size={18} />
-              <span>{format(nextDueDate, 'MMMM d, yyyy')}</span>
-            </div>
+            <p>Rescheduling for: <strong>{format(nextDueDate, 'MMMM d, yyyy')}</strong></p>
           </div>
-
-          <div className="form-group">
-            <label className="form-label">Completion Notes (optional)</label>
-            <textarea
-              className="form-textarea"
-              placeholder="Add any notes about this completion..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
+          <div className="form-group"><label className="form-label">Notes</label><textarea className="form-textarea" value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         </div>
-
-        <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-secondary" onClick={handleComplete}>
-            <CheckCircle2 size={16} />
-            Mark Complete
-          </button>
-        </div>
+        <div className="modal-footer"><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-secondary" onClick={handleComplete}>Mark Complete</button></div>
       </div>
     </div>
   );
 }
 
-// History Modal
 function HistoryModal({ task, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Completion History</h3>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-
+        <div className="modal-header"><h3>History</h3><button className="btn btn-ghost btn-sm" onClick={onClose}><X size={18} /></button></div>
         <div className="modal-body">
-          <h4 className="history-task-name">{task.name}</h4>
-
-          {task.completionHistory.length === 0 ? (
-            <p className="text-muted">No completion history yet.</p>
-          ) : (
+          {task.completionHistory?.length === 0 ? <p>No history yet.</p> : (
             <div className="history-list">
-              {[...task.completionHistory].reverse().map((entry, index) => (
-                <div key={entry.id || index} className="history-item">
-                  <div className="history-date">
-                    <CheckCircle2 size={16} />
-                    {format(new Date(entry.completedAt), 'MMM d, yyyy \'at\' h:mm a')}
-                  </div>
-                  {entry.notes && (
-                    <p className="history-notes">{entry.notes}</p>
-                  )}
-                </div>
+              {[...task.completionHistory].reverse().map((entry, i) => (
+                <div key={i} className="history-item"><strong>{format(new Date(entry.completedAt), 'MMM d, yyyy')}</strong>: {entry.notes}</div>
               ))}
             </div>
           )}
         </div>
-
-        <div className="modal-footer">
-          <button className="btn btn-primary" onClick={onClose}>Close</button>
-        </div>
+        <div className="modal-footer"><button className="btn btn-primary" onClick={onClose}>Close</button></div>
       </div>
     </div>
   );
