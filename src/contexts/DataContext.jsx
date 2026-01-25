@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useAuth } from './AuthContext';
 import { defaultMaintenanceTasks, roomCategories as defaultRoomCategories } from '../data/defaultData';
-import { addDays, isAfter, isBefore, startOfDay, differenceInDays } from 'date-fns';
+import { addDays, isBefore, startOfDay, differenceInDays } from 'date-fns';
 
 const DataContext = createContext(null);
-
-const getStorageKey = (userId, key) => `homeapp_${userId}_${key}`;
 
 export function DataProvider({ children }) {
   const { user } = useAuth();
@@ -18,107 +18,145 @@ export function DataProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [initialized, setInitialized] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Helper to get/set Firestore documents
+  const getDocRef = useCallback((collection) => {
+    if (!user?.id) return null;
+    return doc(db, 'users', user.id, 'appData', collection);
+  }, [user?.id]);
+
+  const saveToFirestore = useCallback(async (collection, data) => {
+    const docRef = getDocRef(collection);
+    if (!docRef) return;
+    try {
+      await setDoc(docRef, { items: data, updatedAt: new Date().toISOString() });
+    } catch (error) {
+      console.error(`Error saving ${collection}:`, error);
+    }
+  }, [getDocRef]);
 
   // Load data when user changes
   useEffect(() => {
-    if (!user) {
+    if (!user?.id) {
       setRooms([]);
       setMaintenanceTasks([]);
       setCosts([]);
       setNotifications([]);
       setContacts([]);
       setInitialized(false);
+      setLoading(false);
       return;
     }
 
-    const loadData = () => {
-      // Load rooms
-      const storedRooms = localStorage.getItem(getStorageKey(user.id, 'rooms'));
-      if (storedRooms) {
-        setRooms(JSON.parse(storedRooms));
-      } else {
-        // Initialize with default room structure
-        const initialRooms = defaultRoomCategories.map(category => ({
-          ...category,
-          furnitureIdeas: [],
-          paintSwatches: [],
-          measurements: [],
-          shoppingLists: [],
-          inspirationLinks: [],
-          notes: ''
-        }));
-        setRooms(initialRooms);
-        localStorage.setItem(getStorageKey(user.id, 'rooms'), JSON.stringify(initialRooms));
-      }
+    setLoading(true);
 
-      // Load maintenance tasks
-      const storedTasks = localStorage.getItem(getStorageKey(user.id, 'tasks'));
-      if (storedTasks) {
-        setMaintenanceTasks(JSON.parse(storedTasks));
-      } else {
-        // Initialize with default tasks
-        const today = new Date();
-        const initialTasks = defaultMaintenanceTasks.map(task => ({
-          ...task,
-          id: uuidv4(),
-          dueDate: addDays(today, Math.floor(Math.random() * task.intervalDays)).toISOString(),
-          completionHistory: [],
-          isActive: true,
-          createdAt: today.toISOString()
-        }));
-        setMaintenanceTasks(initialTasks);
-        localStorage.setItem(getStorageKey(user.id, 'tasks'), JSON.stringify(initialTasks));
-      }
+    const loadData = async () => {
+      try {
+        // Load rooms
+        const roomsDoc = await getDoc(doc(db, 'users', user.id, 'appData', 'rooms'));
+        if (roomsDoc.exists() && roomsDoc.data().items) {
+          setRooms(roomsDoc.data().items);
+        } else {
+          // Initialize with default room structure
+          const initialRooms = defaultRoomCategories.map(category => ({
+            ...category,
+            furnitureIdeas: [],
+            paintSwatches: [],
+            measurements: [],
+            shoppingLists: [],
+            inspirationLinks: [],
+            notes: ''
+          }));
+          setRooms(initialRooms);
+          await setDoc(doc(db, 'users', user.id, 'appData', 'rooms'), {
+            items: initialRooms,
+            updatedAt: new Date().toISOString()
+          });
+        }
 
-      // Load costs
-      const storedCosts = localStorage.getItem(getStorageKey(user.id, 'costs'));
-      if (storedCosts) {
-        setCosts(JSON.parse(storedCosts));
-      }
+        // Load maintenance tasks
+        const tasksDoc = await getDoc(doc(db, 'users', user.id, 'appData', 'tasks'));
+        if (tasksDoc.exists() && tasksDoc.data().items) {
+          setMaintenanceTasks(tasksDoc.data().items);
+        } else {
+          // Initialize with default tasks
+          const today = new Date();
+          const initialTasks = defaultMaintenanceTasks.map(task => ({
+            ...task,
+            id: uuidv4(),
+            dueDate: addDays(today, Math.floor(Math.random() * task.intervalDays)).toISOString(),
+            completionHistory: [],
+            isActive: true,
+            createdAt: today.toISOString()
+          }));
+          setMaintenanceTasks(initialTasks);
+          await setDoc(doc(db, 'users', user.id, 'appData', 'tasks'), {
+            items: initialTasks,
+            updatedAt: new Date().toISOString()
+          });
+        }
 
-      // Load notifications
-      const storedNotifications = localStorage.getItem(getStorageKey(user.id, 'notifications'));
-      if (storedNotifications) {
-        setNotifications(JSON.parse(storedNotifications));
-      }
+        // Load costs
+        const costsDoc = await getDoc(doc(db, 'users', user.id, 'appData', 'costs'));
+        if (costsDoc.exists() && costsDoc.data().items) {
+          setCosts(costsDoc.data().items);
+        } else {
+          setCosts([]);
+        }
 
-      // Load contacts
-      const storedContacts = localStorage.getItem(getStorageKey(user.id, 'contacts'));
-      if (storedContacts) {
-        setContacts(JSON.parse(storedContacts));
-      }
+        // Load notifications
+        const notificationsDoc = await getDoc(doc(db, 'users', user.id, 'appData', 'notifications'));
+        if (notificationsDoc.exists() && notificationsDoc.data().items) {
+          setNotifications(notificationsDoc.data().items);
+        } else {
+          setNotifications([]);
+        }
 
-      setInitialized(true);
+        // Load contacts
+        const contactsDoc = await getDoc(doc(db, 'users', user.id, 'appData', 'contacts'));
+        if (contactsDoc.exists() && contactsDoc.data().items) {
+          setContacts(contactsDoc.data().items);
+        } else {
+          setContacts([]);
+        }
+
+        setInitialized(true);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        setLoading(false);
+      }
     };
 
     loadData();
-  }, [user]);
+  }, [user?.id]);
 
   // Auto-save when data changes
   useEffect(() => {
-    if (!user || !initialized) return;
-    localStorage.setItem(getStorageKey(user.id, 'rooms'), JSON.stringify(rooms));
-  }, [rooms, user, initialized]);
+    if (!user?.id || !initialized) return;
+    saveToFirestore('rooms', rooms);
+  }, [rooms, user?.id, initialized, saveToFirestore]);
 
   useEffect(() => {
-    if (!user || !initialized) return;
-    localStorage.setItem(getStorageKey(user.id, 'tasks'), JSON.stringify(maintenanceTasks));
-  }, [maintenanceTasks, user, initialized]);
+    if (!user?.id || !initialized) return;
+    saveToFirestore('tasks', maintenanceTasks);
+  }, [maintenanceTasks, user?.id, initialized, saveToFirestore]);
 
   useEffect(() => {
-    if (!user || !initialized) return;
-    localStorage.setItem(getStorageKey(user.id, 'costs'), JSON.stringify(costs));
-  }, [costs, user, initialized]);
+    if (!user?.id || !initialized) return;
+    saveToFirestore('costs', costs);
+  }, [costs, user?.id, initialized, saveToFirestore]);
 
   useEffect(() => {
-    if (!user || !initialized) return;
-    localStorage.setItem(getStorageKey(user.id, 'notifications'), JSON.stringify(notifications));
-  }, [notifications, user, initialized]);
+    if (!user?.id || !initialized) return;
+    saveToFirestore('notifications', notifications);
+  }, [notifications, user?.id, initialized, saveToFirestore]);
 
   useEffect(() => {
-    if (!user || !initialized) return;
-    localStorage.setItem(getStorageKey(user.id, 'contacts'), JSON.stringify(contacts));
-  }, [contacts, user, initialized]);
+    if (!user?.id || !initialized) return;
+    saveToFirestore('contacts', contacts);
+  }, [contacts, user?.id, initialized, saveToFirestore]);
 
   // Room functions
   const updateRoom = useCallback((roomId, updates) => {
@@ -533,11 +571,10 @@ export function DataProvider({ children }) {
 
   // Check for due tasks and create notifications
   useEffect(() => {
-    if (!user || !initialized) return;
+    if (!user?.id || !initialized) return;
 
     const checkDueTasks = () => {
       const today = startOfDay(new Date());
-      const oneWeekFromNow = addDays(today, 7);
 
       maintenanceTasks.forEach(task => {
         if (!task.isActive) return;
@@ -584,7 +621,7 @@ export function DataProvider({ children }) {
     const interval = setInterval(checkDueTasks, 3600000);
 
     return () => clearInterval(interval);
-  }, [maintenanceTasks, user, initialized, notifications, addNotification]);
+  }, [maintenanceTasks, user?.id, user?.settings, initialized, notifications, addNotification]);
 
   return (
     <DataContext.Provider value={{
@@ -595,6 +632,7 @@ export function DataProvider({ children }) {
       notifications,
       contacts,
       initialized,
+      loading,
 
       // Room functions
       updateRoom,

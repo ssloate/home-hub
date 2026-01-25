@@ -34,7 +34,16 @@ export default function Register() {
       await register(name, email, password);
       navigate('/');
     } catch (err) {
-      setError(err.message);
+      // Convert Firebase error codes to friendly messages
+      if (err.code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password must be at least 6 characters');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }

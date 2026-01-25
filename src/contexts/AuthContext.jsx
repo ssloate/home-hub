@@ -1,53 +1,63 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential
+} from 'firebase/auth';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load users and current session from localStorage
-    const storedUsers = localStorage.getItem('homeapp_users');
-    const storedSession = localStorage.getItem('homeapp_session');
-
-    if (storedUsers) {
-      setUsers(JSON.parse(storedUsers));
-    }
-
-    if (storedSession) {
-      const session = JSON.parse(storedSession);
-      // Verify session is still valid
-      if (storedUsers) {
-        const usersData = JSON.parse(storedUsers);
-        const validUser = usersData.find(u => u.id === session.userId);
-        if (validUser) {
-          setUser(validUser);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Get additional user data from Firestore
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (userDoc.exists()) {
+          setUser({
+            id: firebaseUser.uid,
+            email: firebaseUser.email,
+            ...userDoc.data()
+          });
+        } else {
+          // User exists in Auth but not in Firestore (edge case)
+          setUser({
+            id: firebaseUser.uid,
+            email: firebaseUser.email,
+            name: '',
+            settings: {
+              emailNotifications: true,
+              notifyWeekBefore: true,
+              notifyOnDueDate: true
+            }
+          });
         }
+      } else {
+        setUser(null);
       }
-    }
+      setLoading(false);
+    });
 
-    setLoading(false);
+    return () => unsubscribe();
   }, []);
 
-  const saveUsers = (newUsers) => {
-    localStorage.setItem('homeapp_users', JSON.stringify(newUsers));
-    setUsers(newUsers);
-  };
-
   const register = async (name, email, password) => {
-    // Check if email already exists
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-      throw new Error('An account with this email already exists');
-    }
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const firebaseUser = userCredential.user;
 
-    const newUser = {
-      id: uuidv4(),
+    // Create user document in Firestore
+    const userData = {
       name,
       email: email.toLowerCase(),
-      password, // In production, this should be hashed
       createdAt: new Date().toISOString(),
       settings: {
         emailNotifications: true,
@@ -56,81 +66,77 @@ export function AuthProvider({ children }) {
       }
     };
 
-    const newUsers = [...users, newUser];
-    saveUsers(newUsers);
+    await setDoc(doc(db, 'users', firebaseUser.uid), userData);
 
-    // Auto login after registration
-    setUser(newUser);
-    localStorage.setItem('homeapp_session', JSON.stringify({ userId: newUser.id }));
+    setUser({
+      id: firebaseUser.uid,
+      ...userData
+    });
 
-    return newUser;
+    return { id: firebaseUser.uid, ...userData };
   };
 
   const login = async (email, password) => {
-    const foundUser = users.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const firebaseUser = userCredential.user;
 
-    if (!foundUser) {
-      throw new Error('Invalid email or password');
-    }
+    // Get user data from Firestore
+    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+    const userData = userDoc.data();
 
-    setUser(foundUser);
-    localStorage.setItem('homeapp_session', JSON.stringify({ userId: foundUser.id }));
-
-    return foundUser;
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('homeapp_session');
-  };
-
-  const updateUser = (updates) => {
-    if (!user) return;
-
-    const updatedUser = { ...user, ...updates };
-    const updatedUsers = users.map(u => u.id === user.id ? updatedUser : u);
-
-    saveUsers(updatedUsers);
-    setUser(updatedUser);
-  };
-
-  const updateSettings = (settings) => {
-    if (!user) return;
-
-    const updatedUser = {
-      ...user,
-      settings: { ...user.settings, ...settings }
+    const fullUser = {
+      id: firebaseUser.uid,
+      email: firebaseUser.email,
+      ...userData
     };
 
-    const updatedUsers = users.map(u => u.id === user.id ? updatedUser : u);
-    saveUsers(updatedUsers);
-    setUser(updatedUser);
+    setUser(fullUser);
+    return fullUser;
   };
 
-  const changePassword = (currentPassword, newPassword) => {
-    if (!user) {
+  const logout = async () => {
+    await signOut(auth);
+    setUser(null);
+  };
+
+  const updateUser = async (updates) => {
+    if (!user) return;
+
+    await updateDoc(doc(db, 'users', user.id), updates);
+    setUser(prev => ({ ...prev, ...updates }));
+  };
+
+  const updateSettings = async (settings) => {
+    if (!user) return;
+
+    const newSettings = { ...user.settings, ...settings };
+    await updateDoc(doc(db, 'users', user.id), { settings: newSettings });
+    setUser(prev => ({ ...prev, settings: newSettings }));
+  };
+
+  const changePassword = async (currentPassword, newPassword) => {
+    if (!auth.currentUser) {
       throw new Error('No user logged in');
     }
 
-    // Verify current password
-    if (user.password !== currentPassword) {
+    // Re-authenticate user before changing password
+    const credential = EmailAuthProvider.credential(
+      auth.currentUser.email,
+      currentPassword
+    );
+
+    try {
+      await reauthenticateWithCredential(auth.currentUser, credential);
+    } catch (error) {
       throw new Error('Current password is incorrect');
     }
 
-    // Update password
-    const updatedUser = { ...user, password: newPassword };
-    const updatedUsers = users.map(u => u.id === user.id ? updatedUser : u);
-
-    saveUsers(updatedUsers);
-    setUser(updatedUser);
+    await updatePassword(auth.currentUser, newPassword);
   };
 
   return (
     <AuthContext.Provider value={{
       user,
-      users,
       loading,
       register,
       login,
