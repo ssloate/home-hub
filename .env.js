@@ -1,6 +1,0 @@
-VITE_FIREBASE_API_KEY="AIzaSyBDrogLGnuMSg5geD2l7rISMCufs2TTCvs"                                                                              
-VITE_FIREBASE_AUTH_DOMAIN="home-hub-b42f1.firebaseapp.com"                                                               
-VITE_FIREBASE_PROJECT_ID="home-hub-b42f1"                                                                               
-VITE_FIREBASE_STORAGE_BUCKET="home-hub-b42f1.firebasestorage.app"                                                               
-VITE_FIREBASE_MESSAGING_SENDER_ID="724402671297"                                                                        
-VITE_FIREBASE_APP_ID="1:724402671297:web:88356343ec72f4923f4e40"
