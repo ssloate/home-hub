@@ -1,4 +1,4 @@
-VITE_FIREBASE_API_KEY="AIzaSyBDrogLGnuMSg5geD2l7rISMCufs2TTCvs"                                                                              
+VITE_FIREBASE_API_KEY=AIzaSyBDrogLGnuMSg5geD2l7rISMCufs2TTCvs                                                                          
 VITE_FIREBASE_AUTH_DOMAIN="home-hub-b42f1.firebaseapp.com"                                                               
 VITE_FIREBASE_PROJECT_ID="home-hub-b42f1"                                                                               
 VITE_FIREBASE_STORAGE_BUCKET="home-hub-b42f1.firebasestorage.app"                                                               
