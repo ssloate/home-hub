@@ -556,21 +556,27 @@ function TaskModal({ mode, task, onClose, onSave }) {
   const [contractor, setContractor] = useState(false);
 
   // This Effect runs whenever the "task" prop changes.
-  // It populates the modal with data if we are Editing or Reopening a task.
   useEffect(() => {
     if (task) {
+      // Pre-fill ALL information from the template or existing task
       setName(task.name || '');
       setDescription(task.description || '');
       setCategory(task.category || 'HVAC');
       setPriority(task.priority || 'medium');
       setFrequency(task.frequency || 'monthly');
       setCustomDays(task.intervalDays?.toString() || '');
-      // If it's a reopen, the date is passed as empty string, so it stays blank
-      setDueDate(task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '');
       setTaskType(task.taskType || 'maintenance');
       setLocation(task.location || '');
       setEstimatedCost(task.estimatedCost?.toString() || '');
       setContractor(task.contractor || false);
+
+      // Only fill the date if we are EDITING an existing active task.
+      // If we are REOPENING (isReopenTemplate) or it's a new task, leave it blank.
+      if (mode === 'edit' && task.dueDate) {
+        setDueDate(format(new Date(task.dueDate), 'yyyy-MM-dd'));
+      } else {
+        setDueDate(''); 
+      }
     } else {
       // Reset to defaults if it's a brand new blank task
       setName('');
@@ -585,7 +591,7 @@ function TaskModal({ mode, task, onClose, onSave }) {
       setEstimatedCost('');
       setContractor(false);
     }
-  }, [task]);
+  }, [task, mode]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -605,19 +611,18 @@ function TaskModal({ mode, task, onClose, onSave }) {
       location,
       estimatedCost: parseFloat(estimatedCost) || 0,
       contractor,
-      // Create ISO string only if a date was selected
       dueDate: dueDate ? new Date(dueDate).toISOString() : null
     };
 
     onSave(taskData);
-    onClose(); // Close the modal after saving
+    onClose();
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal large" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{mode === 'add' ? (task ? 'Reopen Task' : 'Add Task') : 'Edit Task'}</h3>
+          <h3>{mode === 'add' ? (task?.isReopenTemplate ? 'Reopen Task' : 'Add Task') : 'Edit Task'}</h3>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>
             <X size={18} />
           </button>
@@ -726,7 +731,7 @@ function TaskModal({ mode, task, onClose, onSave }) {
                 className="form-input"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                required={frequency !== 'one-time'} // Require date if it's recurring
+                required={frequency !== 'one-time'}
               />
             </div>
 
@@ -822,9 +827,18 @@ function CompleteTaskModal({ task, onClose, onComplete }) {
 
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-secondary" onClick={handleComplete}>
-            <CheckCircle2 size={16} />
-            Mark Complete
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              // We pass the entire task object as the template for showAddModal
+              setShowAddModal({
+                ...task,
+                isReopenTemplate: true // Flag to help the modal identify this is a template
+              });
+            }}
+          >
+            <History size={16} />
+            Reopen
           </button>
         </div>
       </div>
