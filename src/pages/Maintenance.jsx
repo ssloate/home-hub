@@ -1,34 +1,13 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { maintenanceCategories, priorityLevels, frequencyOptions, taskTypes, areaCategories } from '../data/defaultData';
 import { format, differenceInDays, startOfDay, addDays } from 'date-fns';
 import {
-  Plus,
-  Search,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  X,
-  History,
-  Trash2,
-  Edit2,
-  Wrench,
-  Hammer,
-  MapPin,
-  DollarSign,
-  User,
-  Home,
-  Droplets,
-  Zap,
-  Flame,
-  Shield,
-  Wind,
-  TreeDeciduous,
-  Building2,
-  TrendingUp,
-  CalendarDays
+  Plus, Search, Calendar, CheckCircle2, Clock, AlertTriangle, 
+  X, History, Trash2, Wrench, Hammer, MapPin, 
+  DollarSign, User, Home, Wind, Droplets, Zap, 
+  Shield, Flame, TreeDeciduous, Building2, TrendingUp, CalendarDays
 } from 'lucide-react';
 import './Maintenance.css';
 
