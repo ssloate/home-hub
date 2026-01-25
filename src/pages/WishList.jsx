@@ -94,7 +94,7 @@ export default function WishList() {
       {/* Stats */}
       <div className="wishlist-stats">
         <button
-          className={`stat-pill ${!showPurchased ? 'active' : ''}`}
+          className={`stat-pill {!showPurchased ? 'active' : ''}`}
           onClick={() => setShowPurchased(false)}
         >
           <ShoppingCart size={16} />
@@ -102,7 +102,7 @@ export default function WishList() {
           <span className="stat-label">To Buy</span>
         </button>
         <button
-          className={`stat-pill purchased ${showPurchased ? 'active' : ''}`}
+          className={`stat-pill purchased {showPurchased ? 'active' : ''}`}
           onClick={() => setShowPurchased(true)}
         >
           <CheckCircle2 size={16} />
@@ -112,7 +112,7 @@ export default function WishList() {
         {!showPurchased && stats.totalEstimated > 0 && (
           <div className="stat-pill total">
             <DollarSign size={16} />
-            <span className="stat-count">${stats.totalEstimated.toLocaleString()}</span>
+            <span className="stat-count">{stats.totalEstimated.toLocaleString()}</span>
             <span className="stat-label">Estimated Total</span>
           </div>
         )}
@@ -155,7 +155,7 @@ export default function WishList() {
               const linkedTasks = getLinkedTaskNames(item.linkedTaskIds);
 
               return (
-                <div key={item.id} className={`wishlist-card ${item.purchased ? 'is-purchased' : ''}`}>
+                <div key={item.id} className={`wishlist-card {item.purchased ? 'is-purchased' : ''}`}>
                   <div className="wishlist-card-header">
                     <h3 className="item-name">{item.name}</h3>
                     <div className="item-actions">
@@ -180,7 +180,7 @@ export default function WishList() {
                     {item.estimatedPrice > 0 && (
                       <div className="item-price">
                         <DollarSign size={16} />
-                        <span>${item.estimatedPrice.toLocaleString()}</span>
+                        <span>{item.estimatedPrice.toLocaleString()}</span>
                       </div>
                     )}
 
@@ -219,7 +219,7 @@ export default function WishList() {
 
                   <div className="wishlist-card-footer">
                     <button
-                      className={`btn ${item.purchased ? 'btn-secondary' : 'btn-primary'} btn-sm`}
+                      className={`btn {item.purchased ? 'btn-secondary' : 'btn-primary'} btn-sm`}
                       onClick={() => toggleWishlistPurchased(item.id)}
                     >
                       {item.purchased ? (
@@ -387,7 +387,7 @@ function WishlistItemModal({ mode, item, tasks, onClose, onSave }) {
                     <button
                       key={task.id}
                       type="button"
-                      className={`task-search-result ${linkedTaskIds.includes(task.id) ? 'selected' : ''}`}
+                      className={`task-search-result {linkedTaskIds.includes(task.id) ? 'selected' : ''}`}
                       onClick={() => handleToggleTask(task.id)}
                     >
                       <span className="task-result-name">{task.name}</span>
