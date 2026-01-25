@@ -71,6 +71,23 @@ export function DataProvider({ children }) {
     }
   }, [getDocRef]);
 
+  // Reopen Maintenance Tasks
+
+  const reopenMaintenanceTask = useCallback((taskId) => {
+  setMaintenanceTasks(prev => prev.map(task => {
+    if (task.id === taskId) {
+      return {
+        ...task,
+        isActive: true,
+        // Optional: If it's a one-time task, you might want to reset the date to today 
+        // so it shows up in the active list clearly.
+        dueDate: task.frequency === 'one-time' ? new Date().toISOString() : task.dueDate
+      };
+    }
+    return task;
+  }));
+  }, []);
+
   // Load data when user changes
   useEffect(() => {
     if (!user?.id) {
@@ -700,6 +717,7 @@ export function DataProvider({ children }) {
       getOverdueTasks,
       getTasksDueSoon,
       resetMaintenanceTasks,
+      reopenMaintenanceTask,
 
       // Cost functions
       addCost,

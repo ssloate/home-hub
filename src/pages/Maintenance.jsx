@@ -53,7 +53,8 @@ export default function Maintenance() {
     addMaintenanceTask,
     updateMaintenanceTask,
     deleteMaintenanceTask,
-    completeMaintenanceTask
+    completeMaintenanceTask,
+    reopenMaintenanceTask
   } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -440,23 +441,33 @@ export default function Maintenance() {
                   </div>
 
                   <div className="task-actions" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => {
-                        if (task.frequency === 'one-time') {
-                          // Direct completion for one-time tasks
-                          if (window.confirm(`Mark "${task.name}" as complete?`)) {
-                            completeMaintenanceTask(task.id, 'Completed one-time task');
+                    {task.isActive ? (
+                      /* SHOW COMPLETE BUTTON IF ACTIVE */
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          if (task.frequency === 'one-time') {
+                            if (window.confirm(`Mark "${task.name}" as complete?`)) {
+                              completeMaintenanceTask(task.id, 'Completed one-time task');
+                            }
+                          } else {
+                            setShowCompleteModal(task);
                           }
-                        } else {
-                          // Show rescheduling modal for recurring tasks
-                          setShowCompleteModal(task);
-                        }
-                      }}
-                    >
-                      <CheckCircle2 size={16} />
-                      Complete
-                    </button>
+                        }}
+                      >
+                        <CheckCircle2 size={16} />
+                        Complete
+                      </button>
+                    ) : (
+                      /* SHOW REOPEN BUTTON IF INACTIVE */
+                      <button
+                        className="btn btn-outline-primary btn-sm"
+                        onClick={() => reopenMaintenanceTask(task.id)}
+                      >
+                        <History size={16} />
+                        Reopen
+                      </button>
+                    )}
 
                     <button
                       className="btn btn-ghost btn-sm"
@@ -465,6 +476,7 @@ export default function Maintenance() {
                       <Trash2 size={16} />
                     </button>
                   </div>
+
                 </div>
               );
             })}
