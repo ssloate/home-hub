@@ -17,6 +17,7 @@ export function DataProvider({ children }) {
   const [costs, setCosts] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [wishlistItems, setWishlistItems] = useState([]);
   const [initialized, setInitialized] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -99,6 +100,7 @@ export function DataProvider({ children }) {
       setCosts([]);
       setNotifications([]);
       setContacts([]);
+      setWishlistItems([]);
       setInitialized(false);
       setLoading(false);
       return;
@@ -176,6 +178,14 @@ export function DataProvider({ children }) {
           setContacts([]);
         }
 
+        // Load wishlist items
+        const wishlistDoc = await getDoc(doc(db, 'users', user.id, 'appData', 'wishlist'));
+        if (wishlistDoc.exists() && wishlistDoc.data().items) {
+          setWishlistItems(wishlistDoc.data().items);
+        } else {
+          setWishlistItems([]);
+        }
+
         setInitialized(true);
         setLoading(false);
       } catch (error) {
@@ -212,6 +222,11 @@ export function DataProvider({ children }) {
     if (!user?.id || !initialized) return;
     saveToFirestore('contacts', contacts);
   }, [contacts, user?.id, initialized, saveToFirestore]);
+
+  useEffect(() => {
+    if (!user?.id || !initialized) return;
+    saveToFirestore('wishlist', wishlistItems);
+  }, [wishlistItems, user?.id, initialized, saveToFirestore]);
 
   // Room functions
   const updateRoom = useCallback((roomId, updates) => {
@@ -615,6 +630,49 @@ export function DataProvider({ children }) {
     setContacts(prev => prev.filter(contact => contact.id !== contactId));
   }, []);
 
+  // Wishlist functions
+  const addWishlistItem = useCallback((item) => {
+    const newItem = {
+      id: uuidv4(),
+      ...item,
+      purchased: false,
+      purchasedDate: null,
+      linkedTaskIds: item.linkedTaskIds || [],
+      createdAt: new Date().toISOString()
+    };
+
+    setWishlistItems(prev => [...prev, newItem]);
+    return newItem;
+  }, []);
+
+  const updateWishlistItem = useCallback((itemId, updates) => {
+    setWishlistItems(prev => prev.map(item =>
+      item.id === itemId ? { ...item, ...updates } : item
+    ));
+  }, []);
+
+  const deleteWishlistItem = useCallback((itemId) => {
+    setWishlistItems(prev => prev.filter(item => item.id !== itemId));
+  }, []);
+
+  const toggleWishlistPurchased = useCallback((itemId) => {
+    setWishlistItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        return {
+          ...item,
+          purchased: !item.purchased,
+          purchasedDate: !item.purchased ? new Date().toISOString() : null
+        };
+      }
+      return item;
+    }));
+  }, []);
+
+  // Get wishlist items linked to a specific task
+  const getWishlistItemsForTask = useCallback((taskId) => {
+    return wishlistItems.filter(item => item.linkedTaskIds?.includes(taskId));
+  }, [wishlistItems]);
+
   // Reset maintenance tasks to defaults
   const resetMaintenanceTasks = useCallback(() => {
     const today = new Date();
@@ -739,7 +797,15 @@ export function DataProvider({ children }) {
       // Contact functions
       addContact,
       updateContact,
-      deleteContact
+      deleteContact,
+
+      // Wishlist functions
+      wishlistItems,
+      addWishlistItem,
+      updateWishlistItem,
+      deleteWishlistItem,
+      toggleWishlistPurchased,
+      getWishlistItemsForTask
     }}>
       {children}
     </DataContext.Provider>

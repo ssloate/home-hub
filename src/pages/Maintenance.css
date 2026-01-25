@@ -287,6 +287,50 @@
   color: var(--primary-600);
 }
 
+/* Tools Needed */
+.tools-needed {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--neutral-200);
+}
+
+.tools-needed > svg {
+  margin-top: 2px;
+  color: var(--neutral-400);
+}
+
+.tools-needed-label {
+  font-size: 0.8125rem;
+  color: var(--neutral-500);
+  font-weight: 500;
+}
+
+.tools-needed-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.tool-badge {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  background: var(--warning-light);
+  color: #b45309;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.tool-badge.purchased {
+  background: var(--secondary-100);
+  color: var(--secondary-600);
+  text-decoration: line-through;
+}
+
 .task-actions {
   display: flex;
   align-items: center;

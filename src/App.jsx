@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Rooms from './pages/Rooms';
 import Maintenance from './pages/Maintenance';
 import Costs from './pages/Costs';
+import WishList from './pages/WishList';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 import Contacts from './pages/Contacts';
@@ -112,6 +113,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <Costs />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/wishlist"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <WishList />
             </Layout>
           </ProtectedRoute>
         }

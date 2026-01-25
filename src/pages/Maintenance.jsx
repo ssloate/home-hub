@@ -28,7 +28,8 @@ import {
   TreeDeciduous,
   Building2,
   TrendingUp,
-  CalendarDays
+  CalendarDays,
+  Package
 } from 'lucide-react';
 import './Maintenance.css';
 
@@ -55,7 +56,8 @@ export default function Maintenance() {
     deleteMaintenanceTask,
     completeMaintenanceTask,
     reopenMaintenanceTask,
-    clearCompletedTasks
+    clearCompletedTasks,
+    getWishlistItemsForTask
   } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -376,6 +378,7 @@ export default function Maintenance() {
           <div className="task-list">
             {filteredTasks.map(task => {
               const taskStatus = getTaskStatus(task);
+              const toolsNeeded = getWishlistItemsForTask(task.id);
 
               return (
               <div
@@ -448,6 +451,25 @@ export default function Maintenance() {
                         </button>
                       )}
                     </div>
+
+                    {/* Tools Needed from Wishlist */}
+                    {toolsNeeded.length > 0 && (
+                      <div className="tools-needed">
+                        <Package size={14} />
+                        <span className="tools-needed-label">Tools Needed:</span>
+                        <div className="tools-needed-list">
+                          {toolsNeeded.map(item => (
+                            <span
+                              key={item.id}
+                              className={`tool-badge ${item.purchased ? 'purchased' : ''}`}
+                              title={item.purchased ? 'Purchased' : 'On wishlist'}
+                            >
+                              {item.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="task-actions" onClick={(e) => e.stopPropagation()}>

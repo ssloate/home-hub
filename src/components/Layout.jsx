@@ -7,6 +7,7 @@ import {
   LayoutGrid,
   Wrench,
   DollarSign,
+  ShoppingCart,
   Bell,
   Settings,
   LogOut,
@@ -23,6 +24,7 @@ const navItems = [
   { path: '/rooms', icon: LayoutGrid, label: 'Rooms' },
   { path: '/maintenance', icon: Wrench, label: 'Maintenance' },
   { path: '/costs', icon: DollarSign, label: 'Costs' },
+  { path: '/wishlist', icon: ShoppingCart, label: 'WishList' },
   { path: '/contacts', icon: Users, label: 'Contacts' },
 ];
 
