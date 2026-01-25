@@ -54,7 +54,8 @@ export default function Maintenance() {
     updateMaintenanceTask,
     deleteMaintenanceTask,
     completeMaintenanceTask,
-    reopenMaintenanceTask
+    reopenMaintenanceTask,
+    clearCompletedTasks
   } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
