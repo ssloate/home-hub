@@ -242,7 +242,7 @@
 }
 
 .dashboard-card .card-footer {
-  padding: 0.75rem 0.75rem;
+  padding: 0.875rem 1.25rem;
   background: var(--neutral-50);
   border-top: 1px solid var(--neutral-100);
 }
@@ -256,38 +256,13 @@
 .task-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
-  border-radius: var(--radius-md);
-  margin-bottom: 0.75rem;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--neutral-100);
 }
 
-.task-date {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8125rem;
-  white-space: nowrap;
-  /* Add padding around the date text if it has a background color */
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-}
-
-
-.task-main {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  flex: 1;
-}
-
-.task-info span:first-child {
-  font-weight: 500;
-  color: var(--neutral-800);
-  font-size: 0.875rem;
-  line-height: 1.2;
+.task-item:first-child {
+  padding-top: 0;
 }
 
 .task-item:last-child {
@@ -299,48 +274,26 @@
 .task-info {
   display: flex;
   flex-direction: column;
-  /* This creates the space between the name and the category/date */
-  gap: 0.35rem; 
-  flex: 1;
+  gap: 0.125rem;
 }
 
 .task-name {
-  font-weight: 600;
+  font-weight: 500;
   color: var(--neutral-800);
-  font-size: 0.9375rem;
-  line-height: 1.2;
+  font-size: 0.875rem;
 }
 
 .task-category {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: var(--neutral-500);
-  /* Optional: gives the category a bit more horizontal space */
-  letter-spacing: 0.01em;
-  background: var(--neutral-100); padding: 2px 8px; border-radius: 12px; width: fit-content;
 }
 
 .task-due {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.task-date.overdue {
-  color: var(--danger-600);
-  background: var(--danger-50);
-  border-color: var(--danger-100);
-}
-
-.task-date.today {
-  color: var(--warning-600);
-  background: var(--warning-50);
-  border-color: var(--warning-100);
-}
-
-.task-date.upcoming {
-  color: var(--primary-600);
-  background: var(--primary-50);
-  border-color: var(--primary-100);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
 }
 
 .due-badge {
