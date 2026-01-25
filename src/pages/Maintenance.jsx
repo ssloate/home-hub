@@ -107,14 +107,14 @@ export default function Maintenance() {
 
         // Status filter
         if (statusFilter !== 'all') {
-          // Completed filter - show tasks with at least one completion
+          // 1. If we are looking for completed tasks, only check history
           if (statusFilter === 'completed') {
             if (!task.completionHistory || task.completionHistory.length === 0) return false;
-          } else {
-            // Check if task has a due date
+          } 
+          // 2. Otherwise, handle the date-based filters (Overdue, Due Soon, etc.)
+          else {
             if (!task.dueDate) {
-              // Tasks without due dates only show in 'all' and 'upcoming'
-              if (statusFilter === 'overdue' || statusFilter === 'due-soon') return false;
+              return false; // Hide tasks without dates from Overdue/Due-Soon/Upcoming
             } else {
               const dueDate = startOfDay(new Date(task.dueDate));
               const daysUntilDue = differenceInDays(dueDate, today);
