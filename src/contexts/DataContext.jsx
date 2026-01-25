@@ -20,6 +20,41 @@ export function DataProvider({ children }) {
   const [initialized, setInitialized] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // TEMPORARY: Migration function for importing old data
+  const importData = useCallback(async (tasksData, contactsData) => {
+    if (!user?.id) {
+      console.error('Not logged in!');
+      return;
+    }
+    try {
+      if (tasksData && tasksData.length > 0) {
+        await setDoc(doc(db, 'users', user.id, 'appData', 'tasks'), {
+          items: tasksData,
+          updatedAt: new Date().toISOString()
+        });
+        setMaintenanceTasks(tasksData);
+        console.log('✓ Imported', tasksData.length, 'tasks');
+      }
+      if (contactsData && contactsData.length > 0) {
+        await setDoc(doc(db, 'users', user.id, 'appData', 'contacts'), {
+          items: contactsData,
+          updatedAt: new Date().toISOString()
+        });
+        setContacts(contactsData);
+        console.log('✓ Imported', contactsData.length, 'contacts');
+      }
+      console.log('🎉 Migration complete!');
+    } catch (error) {
+      console.error('Migration failed:', error);
+    }
+  }, [user?.id]);
+
+  // Expose import function globally for migration
+  useEffect(() => {
+    window.importHomeData = importData;
+    return () => { delete window.importHomeData; };
+  }, [importData]);
+
   // Helper to get/set Firestore documents
   const getDocRef = useCallback((collection) => {
     if (!user?.id) return null;
