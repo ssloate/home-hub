@@ -874,14 +874,3 @@ function HistoryModal({ task, onClose }) {
   );
 }
 
-{/* Add Task Modal */}
-{showAddModal && (
-  <TaskModal
-    mode="add"
-    /* If showAddModal is an object (the task template), pass it. 
-       If it's just 'true', pass null. */
-    task={typeof showAddModal === 'object' ? showAddModal : null}
-    onClose={() => setShowAddModal(false)}
-    onSave={addMaintenanceTask}
-  />
-)}
