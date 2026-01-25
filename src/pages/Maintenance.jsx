@@ -57,7 +57,10 @@ export default function Maintenance() {
     completeMaintenanceTask,
     reopenMaintenanceTask,
     clearCompletedTasks,
-    getWishlistItemsForTask
+    getWishlistItemsForTask,
+    wishlistItems,
+    addWishlistItem,
+    updateWishlistItem
   } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -528,7 +531,22 @@ export default function Maintenance() {
           /* Pass the task object if showAddModal contains one, otherwise pass null */
           task={typeof showAddModal === 'object' ? showAddModal : null}
           onClose={() => setShowAddModal(false)}
-          onSave={addMaintenanceTask}
+          onSave={(taskData) => {
+            const newTask = addMaintenanceTask(taskData);
+            // Link selected tools to the new task
+            if (taskData._pendingToolIds && taskData._pendingToolIds.length > 0) {
+              taskData._pendingToolIds.forEach(toolId => {
+                const item = wishlistItems.find(i => i.id === toolId);
+                if (item) {
+                  const newLinkedTaskIds = [...(item.linkedTaskIds || []), newTask.id];
+                  updateWishlistItem(toolId, { linkedTaskIds: newLinkedTaskIds });
+                }
+              });
+            }
+          }}
+          wishlistItems={wishlistItems}
+          addWishlistItem={addWishlistItem}
+          updateWishlistItem={updateWishlistItem}
         />
       )}
 
@@ -542,6 +560,9 @@ export default function Maintenance() {
             updateMaintenanceTask(showEditModal.id, updates);
             setShowEditModal(null);
           }}
+          wishlistItems={wishlistItems}
+          addWishlistItem={addWishlistItem}
+          updateWishlistItem={updateWishlistItem}
         />
       )}
 
@@ -566,7 +587,7 @@ export default function Maintenance() {
 }
 
 // Add/Edit Task Modal
-function TaskModal({ mode, task, onClose, onSave }) {
+function TaskModal({ mode, task, onClose, onSave, wishlistItems = [], addWishlistItem, updateWishlistItem }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('HVAC');
@@ -578,6 +599,12 @@ function TaskModal({ mode, task, onClose, onSave }) {
   const [location, setLocation] = useState('');
   const [estimatedCost, setEstimatedCost] = useState('');
   const [contractor, setContractor] = useState(false);
+
+  // Tools state
+  const [selectedToolIds, setSelectedToolIds] = useState([]);
+  const [toolSearch, setToolSearch] = useState('');
+  const [newToolName, setNewToolName] = useState('');
+  const [showToolDropdown, setShowToolDropdown] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -598,7 +625,15 @@ function TaskModal({ mode, task, onClose, onSave }) {
       if (mode === 'edit' && task.dueDate) {
         setDueDate(format(new Date(task.dueDate), 'yyyy-MM-dd'));
       } else {
-        setDueDate(''); 
+        setDueDate('');
+      }
+
+      // Get tools linked to this task
+      if (task.id) {
+        const linkedTools = wishlistItems.filter(item =>
+          item.linkedTaskIds?.includes(task.id)
+        );
+        setSelectedToolIds(linkedTools.map(t => t.id));
       }
     } else {
       // Reset to defaults if it's a brand new blank task
@@ -613,8 +648,40 @@ function TaskModal({ mode, task, onClose, onSave }) {
       setLocation('');
       setEstimatedCost('');
       setContractor(false);
+      setSelectedToolIds([]);
     }
-  }, [task, mode]);
+  }, [task, mode, wishlistItems]);
+
+  // Filter tools based on search
+  const filteredTools = useMemo(() => {
+    if (!toolSearch.trim()) return wishlistItems;
+    const query = toolSearch.toLowerCase();
+    return wishlistItems.filter(item =>
+      item.name.toLowerCase().includes(query)
+    );
+  }, [wishlistItems, toolSearch]);
+
+  // Get selected tools for display
+  const selectedTools = useMemo(() => {
+    return selectedToolIds
+      .map(id => wishlistItems.find(item => item.id === id))
+      .filter(Boolean);
+  }, [selectedToolIds, wishlistItems]);
+
+  const handleToggleTool = (toolId) => {
+    if (selectedToolIds.includes(toolId)) {
+      setSelectedToolIds(prev => prev.filter(id => id !== toolId));
+    } else {
+      setSelectedToolIds(prev => [...prev, toolId]);
+    }
+  };
+
+  const handleAddNewTool = () => {
+    if (!newToolName.trim()) return;
+    // We'll add this tool after the task is saved (need task ID)
+    // For now, just track it as a pending new tool
+    setNewToolName('');
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -636,6 +703,35 @@ function TaskModal({ mode, task, onClose, onSave }) {
       contractor,
       dueDate: dueDate ? new Date(dueDate).toISOString() : null
     };
+
+    // For edit mode, we know the task ID and can update wishlist items
+    if (mode === 'edit' && task?.id) {
+      // Get previously linked tools
+      const previouslyLinked = wishlistItems.filter(item =>
+        item.linkedTaskIds?.includes(task.id)
+      );
+
+      // Remove task from tools that are no longer selected
+      previouslyLinked.forEach(item => {
+        if (!selectedToolIds.includes(item.id)) {
+          const newLinkedTaskIds = (item.linkedTaskIds || []).filter(id => id !== task.id);
+          updateWishlistItem(item.id, { linkedTaskIds: newLinkedTaskIds });
+        }
+      });
+
+      // Add task to newly selected tools
+      selectedToolIds.forEach(toolId => {
+        const item = wishlistItems.find(i => i.id === toolId);
+        if (item && !item.linkedTaskIds?.includes(task.id)) {
+          const newLinkedTaskIds = [...(item.linkedTaskIds || []), task.id];
+          updateWishlistItem(toolId, { linkedTaskIds: newLinkedTaskIds });
+        }
+      });
+    }
+
+    // Store selected tool IDs to link after task creation (for add mode)
+    taskData._pendingToolIds = selectedToolIds;
+    taskData._pendingNewToolName = newToolName.trim() || null;
 
     onSave(taskData);
     onClose();
@@ -791,6 +887,99 @@ function TaskModal({ mode, task, onClose, onSave }) {
                   <span>Yes, needs professional help</span>
                 </label>
               </div>
+            </div>
+
+            {/* Tools Needed Section */}
+            <div className="form-group">
+              <label className="form-label">Tools Needed</label>
+              <p className="form-hint">Select tools from your Wish List or add new ones</p>
+
+              <div className="tools-select-container">
+                <div className="tools-search-box">
+                  <Search size={16} />
+                  <input
+                    type="text"
+                    placeholder="Search tools..."
+                    value={toolSearch}
+                    onChange={(e) => {
+                      setToolSearch(e.target.value);
+                      setShowToolDropdown(true);
+                    }}
+                    onFocus={() => setShowToolDropdown(true)}
+                  />
+                </div>
+
+                {/* Dropdown */}
+                {showToolDropdown && (
+                  <div className="tools-dropdown">
+                    {filteredTools.length > 0 ? (
+                      filteredTools.slice(0, 8).map(tool => (
+                        <button
+                          key={tool.id}
+                          type="button"
+                          className={`tool-dropdown-item ${selectedToolIds.includes(tool.id) ? 'selected' : ''}`}
+                          onClick={() => handleToggleTool(tool.id)}
+                        >
+                          <span className="tool-item-name">{tool.name}</span>
+                          {tool.purchased && <span className="tool-purchased-badge">Owned</span>}
+                          {selectedToolIds.includes(tool.id) && <CheckCircle2 size={16} />}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="tool-dropdown-empty">No tools found</div>
+                    )}
+
+                    {/* Add new tool option */}
+                    {toolSearch.trim() && !wishlistItems.some(t => t.name.toLowerCase() === toolSearch.toLowerCase()) && (
+                      <button
+                        type="button"
+                        className="tool-dropdown-item add-new"
+                        onClick={() => {
+                          const newItem = addWishlistItem({
+                            name: toolSearch.trim(),
+                            link: null,
+                            estimatedPrice: 0,
+                            linkedTaskIds: task?.id ? [task.id] : []
+                          });
+                          setSelectedToolIds(prev => [...prev, newItem.id]);
+                          setToolSearch('');
+                          setShowToolDropdown(false);
+                        }}
+                      >
+                        <Plus size={16} />
+                        <span>Add "{toolSearch.trim()}" to Wish List</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      className="tool-dropdown-close"
+                      onClick={() => setShowToolDropdown(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Tools */}
+              {selectedTools.length > 0 && (
+                <div className="selected-tools-list">
+                  {selectedTools.map(tool => (
+                    <span key={tool.id} className={`selected-tool-badge ${tool.purchased ? 'owned' : ''}`}>
+                      {tool.name}
+                      {tool.purchased && <span className="owned-label">(Owned)</span>}
+                      <button
+                        type="button"
+                        className="remove-tool-btn"
+                        onClick={() => handleToggleTool(tool.id)}
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

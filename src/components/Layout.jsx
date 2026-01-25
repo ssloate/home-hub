@@ -24,7 +24,7 @@ const navItems = [
   { path: '/rooms', icon: LayoutGrid, label: 'Rooms' },
   { path: '/maintenance', icon: Wrench, label: 'Maintenance' },
   { path: '/costs', icon: DollarSign, label: 'Costs' },
-  { path: '/wishlist', icon: ShoppingCart, label: 'WishList' },
+  { path: '/wishlist', icon: ShoppingCart, label: 'Wish List' },
   { path: '/contacts', icon: Users, label: 'Contacts' },
 ];
 

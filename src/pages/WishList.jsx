@@ -83,7 +83,7 @@ export default function WishList() {
     <div className="wishlist-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">WishList</h1>
+          <h1 className="page-title">Wish List</h1>
           <p className="page-subtitle">Track tools and items you want to buy</p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
