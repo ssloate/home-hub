@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useData } from '../contexts/DataContext';
 import { format } from 'date-fns';
 import {
@@ -14,9 +14,19 @@ import {
   Link as LinkIcon,
   Package,
   CheckCircle2,
-  Wrench
+  Wrench,
+  GripVertical,
+  AlertTriangle,
+  Minus,
+  ArrowDown
 } from 'lucide-react';
 import './WishList.css';
+
+const priorityLevels = [
+  { value: 'high', label: 'High', icon: AlertTriangle },
+  { value: 'medium', label: 'Medium', icon: Minus },
+  { value: 'low', label: 'Low', icon: ArrowDown }
+];
 
 export default function WishList() {
   const {
@@ -32,6 +42,8 @@ export default function WishList() {
   const [showEditModal, setShowEditModal] = useState(null);
   const [showPurchased, setShowPurchased] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [dragOverItem, setDragOverItem] = useState(null);
 
   // Filter items based on purchased status and search
   const filteredItems = useMemo(() => {
@@ -54,7 +66,13 @@ export default function WishList() {
 
         return true;
       })
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      .sort((a, b) => {
+        // Sort by sortOrder if available, otherwise by createdAt
+        if (a.sortOrder !== undefined && b.sortOrder !== undefined) {
+          return a.sortOrder - b.sortOrder;
+        }
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
   }, [wishlistItems, showPurchased, searchQuery]);
 
   // Stats
@@ -79,6 +97,57 @@ export default function WishList() {
       .map(t => t.name);
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (e, item) => {
+    setDraggedItem(item);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, item) => {
+    e.preventDefault();
+    if (draggedItem && item.id !== draggedItem.id) {
+      setDragOverItem(item);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverItem(null);
+  };
+
+  const handleDrop = (e, targetItem) => {
+    e.preventDefault();
+    if (!draggedItem || draggedItem.id === targetItem.id) return;
+
+    // Get current items in display order
+    const items = [...filteredItems];
+    const draggedIndex = items.findIndex(i => i.id === draggedItem.id);
+    const targetIndex = items.findIndex(i => i.id === targetItem.id);
+
+    // Remove dragged item and insert at target position
+    items.splice(draggedIndex, 1);
+    items.splice(targetIndex, 0, draggedItem);
+
+    // Update sortOrder for all items
+    items.forEach((item, index) => {
+      updateWishlistItem(item.id, { sortOrder: index });
+    });
+
+    setDraggedItem(null);
+    setDragOverItem(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDragOverItem(null);
+  };
+
+  const getPriorityIcon = (priority) => {
+    const level = priorityLevels.find(p => p.value === priority);
+    if (!level) return null;
+    const Icon = level.icon;
+    return <Icon size={12} />;
+  };
+
   return (
     <div className="wishlist-page">
       <div className="page-header">
@@ -94,7 +163,7 @@ export default function WishList() {
       {/* Stats */}
       <div className="wishlist-stats">
         <button
-          className={`stat-pill {!showPurchased ? 'active' : ''}`}
+          className={`stat-pill ${!showPurchased ? 'active' : ''}`}
           onClick={() => setShowPurchased(false)}
         >
           <ShoppingCart size={16} />
@@ -102,7 +171,7 @@ export default function WishList() {
           <span className="stat-label">To Buy</span>
         </button>
         <button
-          className={`stat-pill purchased {showPurchased ? 'active' : ''}`}
+          className={`stat-pill purchased ${showPurchased ? 'active' : ''}`}
           onClick={() => setShowPurchased(true)}
         >
           <CheckCircle2 size={16} />
@@ -112,7 +181,7 @@ export default function WishList() {
         {!showPurchased && stats.totalEstimated > 0 && (
           <div className="stat-pill total">
             <DollarSign size={16} />
-            <span className="stat-count">{stats.totalEstimated.toLocaleString()}</span>
+            <span className="stat-count">${stats.totalEstimated.toLocaleString()}</span>
             <span className="stat-label">Estimated Total</span>
           </div>
         )}
@@ -153,85 +222,110 @@ export default function WishList() {
           <div className="wishlist-grid">
             {filteredItems.map(item => {
               const linkedTasks = getLinkedTaskNames(item.linkedTaskIds);
+              const isDragOver = dragOverItem?.id === item.id;
 
               return (
-                <div key={item.id} className={`wishlist-card {item.purchased ? 'is-purchased' : ''}`}>
-                  <div className="wishlist-card-header">
-                    <h3 className="item-name">{item.name}</h3>
-                    <div className="item-actions">
+                <div
+                  key={item.id}
+                  className={`wishlist-card ${item.purchased ? 'is-purchased' : ''} ${isDragOver ? 'drag-over' : ''}`}
+                  draggable={!showPurchased}
+                  onDragStart={(e) => handleDragStart(e, item)}
+                  onDragOver={(e) => handleDragOver(e, item)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, item)}
+                  onDragEnd={handleDragEnd}
+                >
+                  {!showPurchased && (
+                    <div className="drag-handle">
+                      <GripVertical size={16} />
+                    </div>
+                  )}
+                  <div className="wishlist-card-content">
+                    <div className="wishlist-card-header">
+                      <div className="item-title-row">
+                        <h3 className="item-name">{item.name}</h3>
+                        {item.priority && (
+                          <span className={`priority-badge priority-${item.priority}`}>
+                            {getPriorityIcon(item.priority)}
+                            {item.priority}
+                          </span>
+                        )}
+                      </div>
+                      <div className="item-actions">
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => setShowEditModal(item)}
+                          title="Edit"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => deleteWishlistItem(item.id)}
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="wishlist-card-body">
+                      {item.estimatedPrice > 0 && (
+                        <div className="item-price">
+                          <DollarSign size={16} />
+                          <span>${item.estimatedPrice.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {item.link && (
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="item-link"
+                        >
+                          <LinkIcon size={14} />
+                          <span>View Link</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      )}
+
+                      {linkedTasks.length > 0 && (
+                        <div className="linked-tasks">
+                          <Wrench size={14} />
+                          <span className="linked-tasks-label">For:</span>
+                          <div className="linked-tasks-list">
+                            {linkedTasks.map((name, idx) => (
+                              <span key={idx} className="linked-task-badge">{name}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {item.purchased && item.purchasedDate && (
+                        <div className="purchased-date">
+                          <CheckCircle2 size={14} />
+                          <span>Purchased {format(new Date(item.purchasedDate), 'MMM d, yyyy')}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="wishlist-card-footer">
                       <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setShowEditModal(item)}
-                        title="Edit"
+                        className={`btn ${item.purchased ? 'btn-secondary' : 'btn-primary'} btn-sm`}
+                        onClick={() => toggleWishlistPurchased(item.id)}
                       >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => deleteWishlistItem(item.id)}
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
+                        {item.purchased ? (
+                          <>
+                            <X size={16} /> Mark as Not Purchased
+                          </>
+                        ) : (
+                          <>
+                            <Check size={16} /> Mark as Purchased
+                          </>
+                        )}
                       </button>
                     </div>
-                  </div>
-
-                  <div className="wishlist-card-body">
-                    {item.estimatedPrice > 0 && (
-                      <div className="item-price">
-                        <DollarSign size={16} />
-                        <span>{item.estimatedPrice.toLocaleString()}</span>
-                      </div>
-                    )}
-
-                    {item.link && (
-                      <a
-                        href={item.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="item-link"
-                      >
-                        <LinkIcon size={14} />
-                        <span>View Link</span>
-                        <ExternalLink size={12} />
-                      </a>
-                    )}
-
-                    {linkedTasks.length > 0 && (
-                      <div className="linked-tasks">
-                        <Wrench size={14} />
-                        <span className="linked-tasks-label">For:</span>
-                        <div className="linked-tasks-list">
-                          {linkedTasks.map((name, idx) => (
-                            <span key={idx} className="linked-task-badge">{name}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {item.purchased && item.purchasedDate && (
-                      <div className="purchased-date">
-                        <CheckCircle2 size={14} />
-                        <span>Purchased {format(new Date(item.purchasedDate), 'MMM d, yyyy')}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="wishlist-card-footer">
-                    <button
-                      className={`btn {item.purchased ? 'btn-secondary' : 'btn-primary'} btn-sm`}
-                      onClick={() => toggleWishlistPurchased(item.id)}
-                    >
-                      {item.purchased ? (
-                        <>
-                          <X size={16} /> Mark as Not Purchased
-                        </>
-                      ) : (
-                        <>
-                          <Check size={16} /> Mark as Purchased
-                        </>
-                      )}
-                    </button>
                   </div>
                 </div>
               );
@@ -275,6 +369,7 @@ function WishlistItemModal({ mode, item, tasks, onClose, onSave }) {
   const [name, setName] = useState(item?.name || '');
   const [link, setLink] = useState(item?.link || '');
   const [estimatedPrice, setEstimatedPrice] = useState(item?.estimatedPrice?.toString() || '');
+  const [priority, setPriority] = useState(item?.priority || 'medium');
   const [linkedTaskIds, setLinkedTaskIds] = useState(item?.linkedTaskIds || []);
   const [taskSearch, setTaskSearch] = useState('');
 
@@ -308,6 +403,7 @@ function WishlistItemModal({ mode, item, tasks, onClose, onSave }) {
       name: name.trim(),
       link: link.trim() || null,
       estimatedPrice: parseFloat(estimatedPrice) || 0,
+      priority,
       linkedTaskIds
     });
   };
@@ -341,6 +437,34 @@ function WishlistItemModal({ mode, item, tasks, onClose, onSave }) {
               />
             </div>
 
+            <div className="form-row-2">
+              <div className="form-group">
+                <label className="form-label">Estimated Price ($)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  placeholder="0.00"
+                  value={estimatedPrice}
+                  onChange={(e) => setEstimatedPrice(e.target.value)}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Priority</label>
+                <select
+                  className="form-select"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                >
+                  {priorityLevels.map(p => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div className="form-group">
               <label className="form-label">Link (optional)</label>
               <input
@@ -349,19 +473,6 @@ function WishlistItemModal({ mode, item, tasks, onClose, onSave }) {
                 placeholder="https://..."
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Estimated Price ($)</label>
-              <input
-                type="number"
-                className="form-input"
-                placeholder="0.00"
-                value={estimatedPrice}
-                onChange={(e) => setEstimatedPrice(e.target.value)}
-                min="0"
-                step="0.01"
               />
             </div>
 
@@ -387,7 +498,7 @@ function WishlistItemModal({ mode, item, tasks, onClose, onSave }) {
                     <button
                       key={task.id}
                       type="button"
-                      className={`task-search-result {linkedTaskIds.includes(task.id) ? 'selected' : ''}`}
+                      className={`task-search-result ${linkedTaskIds.includes(task.id) ? 'selected' : ''}`}
                       onClick={() => handleToggleTask(task.id)}
                     >
                       <span className="task-result-name">{task.name}</span>

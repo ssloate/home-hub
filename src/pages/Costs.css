@@ -252,6 +252,15 @@
   background: var(--neutral-100);
 }
 
+.expense-card.clickable {
+  cursor: pointer;
+}
+
+.expense-card.clickable:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
 .expense-main {
   flex: 1;
   display: flex;

@@ -260,7 +260,11 @@ export default function Costs() {
         ) : (
           <div className="expenses-list">
             {filteredCosts.map(cost => (
-              <div key={cost.id} className="expense-card">
+              <div
+                key={cost.id}
+                className="expense-card clickable"
+                onClick={() => handleEdit(cost)}
+              >
                 <div className="expense-main">
                   <div className="expense-info">
                     <h4 className="expense-description">{cost.description}</h4>
@@ -280,7 +284,7 @@ export default function Costs() {
                     ${cost.amount?.toLocaleString()}
                   </div>
                 </div>
-                <div className="expense-actions">
+                <div className="expense-actions" onClick={(e) => e.stopPropagation()}>
                   <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(cost)}>
                     <Edit2 size={14} />
                   </button>

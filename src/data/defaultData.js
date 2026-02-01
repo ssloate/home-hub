@@ -265,5 +265,6 @@ export const frequencyOptions = [
 export const costCategories = [
   "Maintenance",
   "Repair",
-  "Upgrade"
+  "Upgrade",
+  "Furniture"
 ];
