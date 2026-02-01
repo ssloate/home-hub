@@ -67,7 +67,16 @@ export default function WishList() {
         return true;
       })
       .sort((a, b) => {
-        // Sort by sortOrder if available, otherwise by createdAt
+        // Sort by priority first (high > medium > low)
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        const aPriority = priorityOrder[a.priority] ?? 1;
+        const bPriority = priorityOrder[b.priority] ?? 1;
+
+        if (aPriority !== bPriority) {
+          return aPriority - bPriority;
+        }
+
+        // Within same priority, sort by sortOrder if available, otherwise by createdAt
         if (a.sortOrder !== undefined && b.sortOrder !== undefined) {
           return a.sortOrder - b.sortOrder;
         }
