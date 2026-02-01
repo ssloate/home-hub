@@ -341,6 +341,19 @@
   justify-content: center;
 }
 
+/* Mark as Purchased button - pastel blue/green gradient */
+.wishlist-card-footer .btn.btn-primary {
+  background: linear-gradient(135deg, var(--primary-100) 0%, var(--secondary-100) 100%);
+  color: var(--primary-600);
+  border: none;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.wishlist-card-footer .btn.btn-primary:hover {
+  background: linear-gradient(135deg, var(--primary-200) 0%, var(--secondary-200) 100%);
+}
+
 /* Modal Styles */
 .task-search-box {
   display: flex;

@@ -97,8 +97,8 @@ export default function Costs() {
       .reduce((sum, c) => sum + (c.amount || 0), 0);
 
     const monthChange = lastMonthTotal > 0
-      ? ((thisMonthTotal - lastMonthTotal) / lastMonthTotal * 100).toFixed(1)
-      : 0;
+      ? parseFloat(((thisMonthTotal - lastMonthTotal) / lastMonthTotal * 100).toFixed(1))
+      : (thisMonthTotal > 0 ? 100 : 0);
 
     return {
       total,
@@ -158,9 +158,9 @@ export default function Costs() {
             <span className="stat-value">${stats.thisMonthTotal.toLocaleString()}</span>
             <span className="stat-label">This Month</span>
           </div>
-          <div className={`stat-change ${parseFloat(stats.monthChange) >= 0 ? 'up' : 'down'}`}>
-            {parseFloat(stats.monthChange) >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-            {Math.abs(stats.monthChange)}%
+          <div className={`stat-change ${stats.monthChange >= 0 ? 'up' : 'down'}`}>
+            {stats.monthChange >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+            {stats.monthChange >= 0 ? '+' : ''}{stats.monthChange}%
           </div>
         </div>
 
@@ -323,12 +323,16 @@ function CostModal({ cost, onClose, onSave }) {
     e.preventDefault();
     if (!description.trim() || !amount) return;
 
+    // Parse date parts to avoid timezone issues
+    const [year, month, day] = date.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day, 12, 0, 0);
+
     const costData = {
       description,
       amount: parseFloat(amount),
       category,
       vendor,
-      date: new Date(date).toISOString(),
+      date: localDate.toISOString(),
       notes
     };
 

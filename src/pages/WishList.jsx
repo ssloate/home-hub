@@ -273,7 +273,7 @@ export default function WishList() {
                       {item.estimatedPrice > 0 && (
                         <div className="item-price">
                           <DollarSign size={16} />
-                          <span>${item.estimatedPrice.toLocaleString()}</span>
+                          <span>{item.estimatedPrice.toLocaleString()}</span>
                         </div>
                       )}
 
