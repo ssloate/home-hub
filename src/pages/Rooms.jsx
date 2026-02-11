@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Check,
   Upload,
+  Pencil,
   Home,
   Trees,
   Building,
@@ -441,6 +442,9 @@ function MeasurementsTab({ items, onDelete, onUpdate, roomId, subdivisionId, add
   const [itemName, setItemName] = useState('');
   const [dimensions, setDimensions] = useState([{ label: 'Height', value: '', unit: 'inches' }]);
   const [expandedItem, setExpandedItem] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editDimensions, setEditDimensions] = useState([]);
 
   const dimensionPresets = [
     { label: 'Height', placeholder: 'Height' },
@@ -466,6 +470,55 @@ function MeasurementsTab({ items, onDelete, onUpdate, roomId, subdivisionId, add
     setDimensions(dimensions.map((d, i) => i === index ? { ...d, [field]: value } : d));
   };
 
+  const addEditDimension = () => {
+    const usedLabels = editDimensions.map(d => d.label);
+    const nextPreset = dimensionPresets.find(p => !usedLabels.includes(p.label)) || { label: 'Custom', placeholder: 'Custom' };
+    setEditDimensions([...editDimensions, { label: nextPreset.label, value: '', unit: 'inches' }]);
+  };
+
+  const removeEditDimension = (index) => {
+    if (editDimensions.length > 1) {
+      setEditDimensions(editDimensions.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateEditDimension = (index, field, value) => {
+    setEditDimensions(editDimensions.map((d, i) => i === index ? { ...d, [field]: value } : d));
+  };
+
+  const startEditing = (item) => {
+    setEditingItem(item.id);
+    setEditName(item.name);
+    setEditDimensions(
+      item.dimensions
+        ? item.dimensions.map(d => ({ ...d }))
+        : [{ label: 'Height', value: item.value || '', unit: item.unit || 'inches' }]
+    );
+    setExpandedItem(item.id);
+  };
+
+  const cancelEditing = () => {
+    setEditingItem(null);
+    setEditName('');
+    setEditDimensions([]);
+  };
+
+  const saveEditing = () => {
+    if (!editName.trim()) return;
+    const validDimensions = editDimensions.filter(d => d.value.trim());
+    if (validDimensions.length === 0) return;
+
+    onUpdate(editingItem, {
+      name: editName,
+      dimensions: validDimensions,
+      value: validDimensions[0]?.value || '',
+      unit: validDimensions[0]?.unit || 'inches'
+    });
+    setEditingItem(null);
+    setEditName('');
+    setEditDimensions([]);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!itemName.trim()) return;
@@ -486,6 +539,7 @@ function MeasurementsTab({ items, onDelete, onUpdate, roomId, subdivisionId, add
   };
 
   const toggleExpand = (id) => {
+    if (editingItem === id) return;
     setExpandedItem(expandedItem === id ? null : id);
   };
 
@@ -585,27 +639,92 @@ function MeasurementsTab({ items, onDelete, onUpdate, roomId, subdivisionId, add
                   ) : (
                     <span className="measurement-value">{item.value} {item.unit}</span>
                   )}
+                  <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); startEditing(item); }}>
+                    <Pencil size={14} />
+                  </button>
                   <button className="btn btn-ghost btn-sm delete" onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}>
                     <Trash2 size={14} />
                   </button>
                 </div>
               </div>
-              {(expandedItem === item.id || !item.dimensions) && item.dimensions && (
-                <div className="measurement-dimensions">
-                  {item.dimensions.map((dim, idx) => (
-                    <div key={idx} className="dimension-display">
-                      <span className="dimension-label">{dim.label}:</span>
-                      <span className="dimension-value">{dim.value} {dim.unit}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {!item.dimensions && (
-                <div className="measurement-dimensions legacy">
-                  <div className="dimension-display">
-                    <span className="dimension-value">{item.value} {item.unit}</span>
+              {editingItem === item.id ? (
+                <div className="measurement-edit-form">
+                  <div className="form-group">
+                    <label className="form-label">Item Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                    />
+                  </div>
+                  <div className="dimensions-section">
+                    <label className="form-label">Dimensions</label>
+                    {editDimensions.map((dim, index) => (
+                      <div key={index} className="dimension-row">
+                        <select
+                          className="form-select dimension-label"
+                          value={dim.label}
+                          onChange={(e) => updateEditDimension(index, 'label', e.target.value)}
+                        >
+                          {dimensionPresets.map(p => (
+                            <option key={p.label} value={p.label}>{p.label}</option>
+                          ))}
+                          <option value="Custom">Custom</option>
+                        </select>
+                        <input
+                          type="text"
+                          className="form-input dimension-value"
+                          placeholder="Value"
+                          value={dim.value}
+                          onChange={(e) => updateEditDimension(index, 'value', e.target.value)}
+                        />
+                        <select
+                          className="form-select dimension-unit"
+                          value={dim.unit}
+                          onChange={(e) => updateEditDimension(index, 'unit', e.target.value)}
+                        >
+                          <option value="inches">in</option>
+                          <option value="feet">ft</option>
+                          <option value="cm">cm</option>
+                          <option value="m">m</option>
+                        </select>
+                        {editDimensions.length > 1 && (
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeEditDimension(index)}>
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button type="button" className="btn btn-outline btn-sm add-dimension-btn" onClick={addEditDimension}>
+                      <Plus size={14} /> Add Dimension
+                    </button>
+                  </div>
+                  <div className="form-actions">
+                    <button type="button" className="btn btn-primary btn-sm" onClick={saveEditing}>Save</button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={cancelEditing}>Cancel</button>
                   </div>
                 </div>
+              ) : (
+                <>
+                  {(expandedItem === item.id || !item.dimensions) && item.dimensions && (
+                    <div className="measurement-dimensions">
+                      {item.dimensions.map((dim, idx) => (
+                        <div key={idx} className="dimension-display">
+                          <span className="dimension-label">{dim.label}:</span>
+                          <span className="dimension-value">{dim.value} {dim.unit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!item.dimensions && (
+                    <div className="measurement-dimensions legacy">
+                      <div className="dimension-display">
+                        <span className="dimension-value">{item.value} {item.unit}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ))}

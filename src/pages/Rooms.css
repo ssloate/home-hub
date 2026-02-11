@@ -349,6 +349,7 @@
 
 .dimension-value {
   flex: 1;
+  min-width: 120px;
 }
 
 .dimension-unit {
@@ -453,6 +454,25 @@
   font-weight: 600;
   font-size: 1rem;
   color: var(--primary-600);
+}
+
+/* Measurement Edit Form */
+.measurement-edit-form {
+  padding: 1rem;
+  background: white;
+  border-top: 1px solid var(--neutral-100);
+}
+
+.measurement-edit-form .form-group {
+  margin-bottom: 0.75rem;
+}
+
+.measurement-edit-form .dimensions-section {
+  margin-bottom: 0.75rem;
+}
+
+.measurement-edit-form .form-actions {
+  padding-top: 0.5rem;
 }
 
 /* Legacy single measurement item */
