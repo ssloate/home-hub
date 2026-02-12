@@ -741,6 +741,13 @@ function ShoppingTab({ items, onUpdate, onDelete, roomId, subdivisionId, addShop
   const [quantity, setQuantity] = useState('1');
   const [estimatedPrice, setEstimatedPrice] = useState('');
   const [store, setStore] = useState('');
+  const [link, setLink] = useState('');
+  const [editingItem, setEditingItem] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editQuantity, setEditQuantity] = useState('1');
+  const [editPrice, setEditPrice] = useState('');
+  const [editStore, setEditStore] = useState('');
+  const [editLink, setEditLink] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -750,17 +757,44 @@ function ShoppingTab({ items, onUpdate, onDelete, roomId, subdivisionId, addShop
       name,
       quantity: parseInt(quantity) || 1,
       estimatedPrice: parseFloat(estimatedPrice) || 0,
-      store
+      store,
+      link: link.trim()
     });
     setName('');
     setQuantity('1');
     setEstimatedPrice('');
     setStore('');
+    setLink('');
     setShowForm(false);
   };
 
   const togglePurchased = (item) => {
     onUpdate(item.id, { purchased: !item.purchased });
+  };
+
+  const startEditing = (item) => {
+    setEditingItem(item.id);
+    setEditName(item.name);
+    setEditQuantity(String(item.quantity || 1));
+    setEditPrice(item.estimatedPrice ? String(item.estimatedPrice) : '');
+    setEditStore(item.store || '');
+    setEditLink(item.link || '');
+  };
+
+  const cancelEditing = () => {
+    setEditingItem(null);
+  };
+
+  const saveEditing = () => {
+    if (!editName.trim()) return;
+    onUpdate(editingItem, {
+      name: editName,
+      quantity: parseInt(editQuantity) || 1,
+      estimatedPrice: parseFloat(editPrice) || 0,
+      store: editStore,
+      link: editLink.trim()
+    });
+    setEditingItem(null);
   };
 
   const totalEstimated = items.reduce((sum, item) => sum + (item.estimatedPrice || 0) * (item.quantity || 1), 0);
@@ -808,9 +842,18 @@ function ShoppingTab({ items, onUpdate, onDelete, roomId, subdivisionId, addShop
               onChange={(e) => setStore(e.target.value)}
             />
           </div>
+          <div className="form-row">
+            <input
+              type="url"
+              className="form-input"
+              placeholder="Link (optional)"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+            />
+          </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary btn-sm">Save</button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowForm(false)}>Cancel</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowForm(false); setLink(''); }}>Cancel</button>
           </div>
         </form>
       )}
@@ -825,23 +868,92 @@ function ShoppingTab({ items, onUpdate, onDelete, roomId, subdivisionId, addShop
           <div className="shopping-list">
             {items.map(item => (
               <div key={item.id} className={`shopping-item ${item.purchased ? 'purchased' : ''}`}>
-                <button
-                  className={`checkbox ${item.purchased ? 'checked' : ''}`}
-                  onClick={() => togglePurchased(item)}
-                >
-                  {item.purchased && <Check size={14} />}
-                </button>
-                <div className="shopping-item-info">
-                  <span className="item-name">{item.name}</span>
-                  <span className="item-details">
-                    {item.quantity > 1 && `Qty: ${item.quantity} • `}
-                    {item.store && `${item.store} • `}
-                    {item.estimatedPrice > 0 && `$${item.estimatedPrice}`}
-                  </span>
-                </div>
-                <button className="btn btn-ghost btn-sm delete" onClick={() => onDelete(item.id)}>
-                  <Trash2 size={14} />
-                </button>
+                {editingItem === item.id ? (
+                  <div className="shopping-edit-form">
+                    <div className="form-row">
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Item name"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                      />
+                      <input
+                        type="number"
+                        className="form-input small"
+                        placeholder="Qty"
+                        value={editQuantity}
+                        onChange={(e) => setEditQuantity(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-row">
+                      <input
+                        type="number"
+                        className="form-input"
+                        placeholder="Estimated price ($)"
+                        value={editPrice}
+                        onChange={(e) => setEditPrice(e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Store"
+                        value={editStore}
+                        onChange={(e) => setEditStore(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-row">
+                      <input
+                        type="url"
+                        className="form-input"
+                        placeholder="Link (optional)"
+                        value={editLink}
+                        onChange={(e) => setEditLink(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-actions">
+                      <button type="button" className="btn btn-primary btn-sm" onClick={saveEditing}>Save</button>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={cancelEditing}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      className={`checkbox ${item.purchased ? 'checked' : ''}`}
+                      onClick={() => togglePurchased(item)}
+                    >
+                      {item.purchased && <Check size={14} />}
+                    </button>
+                    <div className="shopping-item-info">
+                      <span className="item-name">
+                        {item.name}
+                        {item.link && (
+                          <a href={item.link} target="_blank" rel="noopener noreferrer" className="shopping-item-link" onClick={(e) => e.stopPropagation()}>
+                            <ExternalLink size={13} />
+                          </a>
+                        )}
+                      </span>
+                      <span className="item-details">
+                        {item.quantity > 1 && `Qty: ${item.quantity}`}
+                        {item.quantity > 1 && item.store && ' • '}
+                        {item.store && item.store}
+                      </span>
+                    </div>
+                    {item.estimatedPrice > 0 && (
+                      <div className="shopping-item-price">
+                        ${(item.estimatedPrice * (item.quantity || 1)).toLocaleString()}
+                      </div>
+                    )}
+                    <div className="shopping-item-actions">
+                      <button className="btn btn-ghost btn-sm" onClick={() => startEditing(item)}>
+                        <Pencil size={14} />
+                      </button>
+                      <button className="btn btn-ghost btn-sm delete" onClick={() => onDelete(item.id)}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

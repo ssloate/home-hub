@@ -1041,18 +1041,11 @@ function CompleteTaskModal({ task, onClose, onComplete }) {
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
 
           <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => {
-              // This triggers the Add Modal and fills it with this task's data
-              setShowAddModal({
-                ...task,
-                isReopenTemplate: true, // Flag for the modal logic
-                dueDate: '' // Ensure date starts blank
-              });
-            }}
+            className="btn btn-primary"
+            onClick={handleComplete}
           >
-            <History size={16} />
-            Reopen
+            <CheckCircle2 size={16} />
+            Complete
           </button>
         </div>
       </div>

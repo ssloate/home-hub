@@ -536,12 +536,26 @@
 
 .shopping-item-info {
   flex: 1;
+  min-width: 0;
 }
 
 .item-name {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 500;
   color: var(--neutral-800);
+}
+
+.shopping-item-link {
+  color: var(--primary-500);
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.shopping-item-link:hover {
+  color: var(--primary-700);
 }
 
 .item-details {
@@ -549,6 +563,35 @@
   font-size: 0.75rem;
   color: var(--neutral-500);
   margin-top: 0.125rem;
+}
+
+.shopping-item-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+  white-space: nowrap;
+  margin-left: auto;
+  padding: 0 0.75rem;
+}
+
+.shopping-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.shopping-edit-form {
+  flex: 1;
+  padding: 0.25rem 0;
+}
+
+.shopping-edit-form .form-row {
+  margin-bottom: 0.5rem;
+}
+
+.shopping-edit-form .form-actions {
+  padding-top: 0.25rem;
 }
 
 .shopping-total {
