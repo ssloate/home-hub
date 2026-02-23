@@ -18,6 +18,7 @@ export function DataProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [wishlistItems, setWishlistItems] = useState([]);
+  const [gifts, setGifts] = useState([]);
   const [initialized, setInitialized] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -98,6 +99,7 @@ export function DataProvider({ children }) {
       setRooms([]);
       setMaintenanceTasks([]);
       setCosts([]);
+      setGifts([]);
       setNotifications([]);
       setContacts([]);
       setWishlistItems([]);
@@ -162,6 +164,14 @@ export function DataProvider({ children }) {
           setCosts([]);
         }
 
+        // Load gifts
+        const giftsDoc = await getDoc(doc(db, 'users', user.id, 'appData', 'gifts'));
+        if (giftsDoc.exists() && giftsDoc.data().items) {
+          setGifts(giftsDoc.data().items);
+        } else {
+          setGifts([]);
+        }
+
         // Load notifications
         const notificationsDoc = await getDoc(doc(db, 'users', user.id, 'appData', 'notifications'));
         if (notificationsDoc.exists() && notificationsDoc.data().items) {
@@ -212,6 +222,11 @@ export function DataProvider({ children }) {
     if (!user?.id || !initialized) return;
     saveToFirestore('costs', costs);
   }, [costs, user?.id, initialized, saveToFirestore]);
+
+  useEffect(() => {
+    if (!user?.id || !initialized) return;
+    saveToFirestore('gifts', gifts);
+  }, [gifts, user?.id, initialized, saveToFirestore]);
 
   useEffect(() => {
     if (!user?.id || !initialized) return;
@@ -577,6 +592,27 @@ export function DataProvider({ children }) {
     return filtered.reduce((sum, cost) => sum + (cost.amount || 0), 0);
   }, [costs]);
 
+  // Gift tracking functions
+  const addGift = useCallback((gift) => {
+    const newGift = {
+      id: uuidv4(),
+      ...gift,
+      createdAt: new Date().toISOString()
+    };
+    setGifts(prev => [...prev, newGift]);
+    return newGift;
+  }, []);
+
+  const updateGift = useCallback((giftId, updates) => {
+    setGifts(prev => prev.map(gift =>
+      gift.id === giftId ? { ...gift, ...updates } : gift
+    ));
+  }, []);
+
+  const deleteGift = useCallback((giftId) => {
+    setGifts(prev => prev.filter(gift => gift.id !== giftId));
+  }, []);
+
   // Notification functions
   const addNotification = useCallback((notification) => {
     const newNotification = {
@@ -786,6 +822,12 @@ export function DataProvider({ children }) {
       updateCost,
       deleteCost,
       getTotalCosts,
+
+      // Gift functions
+      gifts,
+      addGift,
+      updateGift,
+      deleteGift,
 
       // Notification functions
       addNotification,

@@ -13,18 +13,21 @@ import {
   Trash2,
   Edit2,
   X,
-  PieChart
+  PieChart,
+  Gift
 } from 'lucide-react';
 import './Costs.css';
 
 export default function Costs() {
-  const { costs, addCost, updateCost, deleteCost, getTotalCosts } = useData();
+  const { costs, addCost, updateCost, deleteCost, getTotalCosts, gifts, addGift, updateGift, deleteGift } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [dateRange, setDateRange] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCost, setEditingCost] = useState(null);
+  const [showGiftModal, setShowGiftModal] = useState(false);
+  const [editingGift, setEditingGift] = useState(null);
 
   const today = new Date();
 
@@ -117,6 +120,22 @@ export default function Costs() {
       .slice(0, 5);
   }, [stats.byCategory]);
 
+  // Filter gifts by the same date range
+  const filteredGifts = useMemo(() => {
+    return (gifts || [])
+      .filter(gift => {
+        const range = dateRanges[dateRange];
+        if (range.start && new Date(gift.date) < range.start) return false;
+        if (range.end && new Date(gift.date) > range.end) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [gifts, dateRange, dateRanges]);
+
+  const totalGifts = useMemo(() => {
+    return filteredGifts.reduce((sum, g) => sum + (g.amount || 0), 0);
+  }, [filteredGifts]);
+
   const handleEdit = (cost) => {
     setEditingCost(cost);
     setShowAddModal(true);
@@ -125,6 +144,16 @@ export default function Costs() {
   const handleCloseModal = () => {
     setShowAddModal(false);
     setEditingCost(null);
+  };
+
+  const handleEditGift = (gift) => {
+    setEditingGift(gift);
+    setShowGiftModal(true);
+  };
+
+  const handleCloseGiftModal = () => {
+    setShowGiftModal(false);
+    setEditingGift(null);
   };
 
   return (
@@ -298,12 +327,94 @@ export default function Costs() {
         )}
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* Gift Money Section */}
+      <div className="gifts-section">
+        <div className="gifts-header">
+          <div className="gifts-title">
+            <Gift size={18} />
+            <h3>Gift Money</h3>
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowGiftModal(true)}>
+            <Plus size={16} /> Add Gift
+          </button>
+        </div>
+
+        {filteredGifts.length === 0 ? (
+          <div className="gifts-empty">
+            <p>No gift money recorded yet.</p>
+          </div>
+        ) : (
+          <div className="gifts-list">
+            {filteredGifts.map(gift => (
+              <div
+                key={gift.id}
+                className="expense-card clickable"
+                onClick={() => handleEditGift(gift)}
+              >
+                <div className="expense-main">
+                  <div className="expense-info">
+                    <h4 className="expense-description">{gift.description}</h4>
+                    <div className="expense-meta">
+                      {gift.source && <span className="expense-vendor">{gift.source}</span>}
+                      <span className="expense-date">
+                        <Calendar size={12} />
+                        {format(new Date(gift.date), 'MMM d, yyyy')}
+                      </span>
+                    </div>
+                    {gift.notes && (
+                      <p className="expense-notes">{gift.notes}</p>
+                    )}
+                  </div>
+                  <div className="expense-amount gift-amount">
+                    +${gift.amount?.toLocaleString()}
+                  </div>
+                </div>
+                <div className="expense-actions" onClick={(e) => e.stopPropagation()}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => handleEditGift(gift)}>
+                    <Edit2 size={14} />
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => deleteGift(gift.id)}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Net Total */}
+      <div className="net-total-section">
+        <div className="net-total-row">
+          <span className="net-total-label">Total Costs</span>
+          <span className="net-total-value costs">${stats.total.toLocaleString()}</span>
+        </div>
+        <div className="net-total-row">
+          <span className="net-total-label">Gift Money</span>
+          <span className="net-total-value gifts">-${totalGifts.toLocaleString()}</span>
+        </div>
+        <div className="net-total-divider" />
+        <div className="net-total-row total">
+          <span className="net-total-label">Net Total</span>
+          <span className="net-total-value">${(stats.total - totalGifts).toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* Add/Edit Cost Modal */}
       {showAddModal && (
         <CostModal
           cost={editingCost}
           onClose={handleCloseModal}
           onSave={editingCost ? updateCost : addCost}
+        />
+      )}
+
+      {/* Add/Edit Gift Modal */}
+      {showGiftModal && (
+        <GiftModal
+          gift={editingGift}
+          onClose={handleCloseGiftModal}
+          onSave={editingGift ? updateGift : addGift}
         />
       )}
     </div>
@@ -436,6 +547,122 @@ function CostModal({ cost, onClose, onSave }) {
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary">
               {cost ? 'Save Changes' : 'Add Expense'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Gift Modal
+function GiftModal({ gift, onClose, onSave }) {
+  const [description, setDescription] = useState(gift?.description || '');
+  const [amount, setAmount] = useState(gift?.amount?.toString() || '');
+  const [source, setSource] = useState(gift?.source || '');
+  const [date, setDate] = useState(gift?.date ? format(new Date(gift.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+  const [notes, setNotes] = useState(gift?.notes || '');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!description.trim() || !amount) return;
+
+    const [year, month, day] = date.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day, 12, 0, 0);
+
+    const giftData = {
+      description,
+      amount: parseFloat(amount),
+      source,
+      date: localDate.toISOString(),
+      notes
+    };
+
+    if (gift) {
+      onSave(gift.id, giftData);
+    } else {
+      onSave(giftData);
+    }
+
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{gift ? 'Edit Gift' : 'Add Gift Money'}</h3>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="form-group">
+              <label className="form-label">Description *</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g., Housewarming gift from parents"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-row-2">
+              <div className="form-group">
+                <label className="form-label">Amount ($) *</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  step="0.01"
+                  min="0"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">From</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g., Mom & Dad"
+                  value={source}
+                  onChange={(e) => setSource(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Date</label>
+              <input
+                type="date"
+                className="form-input"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Notes</label>
+              <textarea
+                className="form-textarea"
+                placeholder="Add any additional details..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary">
+              {gift ? 'Save Changes' : 'Add Gift'}
             </button>
           </div>
         </form>

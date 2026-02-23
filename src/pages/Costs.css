@@ -362,6 +362,109 @@
   gap: 1rem;
 }
 
+/* Gift Money Section */
+.gifts-section {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-top: 1.5rem;
+}
+
+.gifts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--neutral-100);
+}
+
+.gifts-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gifts-title svg {
+  color: var(--secondary-500);
+}
+
+.gifts-title h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.gifts-empty {
+  padding: 2rem 1.5rem;
+  text-align: center;
+  color: var(--neutral-400);
+  font-size: 0.875rem;
+}
+
+.gifts-list {
+  padding: 0.5rem;
+}
+
+.gift-amount {
+  color: var(--secondary-600) !important;
+}
+
+/* Net Total Section */
+.net-total-section {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.net-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+}
+
+.net-total-row.total {
+  padding-top: 0.75rem;
+}
+
+.net-total-label {
+  font-size: 0.9375rem;
+  color: var(--neutral-600);
+}
+
+.net-total-row.total .net-total-label {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--neutral-900);
+}
+
+.net-total-value {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--neutral-900);
+}
+
+.net-total-value.costs {
+  color: var(--neutral-900);
+}
+
+.net-total-value.gifts {
+  color: var(--secondary-600);
+}
+
+.net-total-row.total .net-total-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.net-total-divider {
+  height: 1px;
+  background: var(--neutral-200);
+  margin: 0.25rem 0;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .costs-stats {
